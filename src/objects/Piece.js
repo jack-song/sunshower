@@ -1,12 +1,29 @@
-import Phaser from 'phaser'
+export function Piece (board, p = {}) {
+  // keep reference to board mask so we don't have to check all other pieces
+  p.board = board;
 
-export default class extends Phaser.Sprite {
-  constructor ({ game, x, y, asset }) {
-    super(game, x, y, asset)
-    this.anchor.setTo(0.5)
-  }
+  // set of logical coordinates to define points
+  p.points = {};
 
-  update () {
-    this.angle += 1
-  }
+  return p;
 }
+
+Piece.prototype = {
+  // merge 2 pieces into 1
+  merge: function (other) {
+
+  },
+  // cause the piece to drop
+  drop: function () {
+
+  },
+  // add a point to the piece using coordinates
+  add: function (lco) {
+    
+  },
+  // draw onto phaser graphics object
+  draw: function (pGraphics) {
+
+  }
+
+};
