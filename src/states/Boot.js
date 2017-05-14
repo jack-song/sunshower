@@ -16,7 +16,7 @@ export default class extends Phaser.State {
       active: this.fontsLoaded
     })
 
-    let text = this.add.text(this.world.centerX, this.world.centerY, 'loading', { font: '16px courier', fill: 'white', align: 'center' })
+    const text = this.add.text(this.world.centerX, this.world.centerY, 'loading', { font: '16px courier', fill: 'white', align: 'center' })
     text.anchor.setTo(0.5, 0.5)
   }
 

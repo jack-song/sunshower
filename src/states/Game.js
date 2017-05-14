@@ -8,7 +8,7 @@ const LHEIGHT = 8;
 
 export default class extends Phaser.State {
   init () {
-    let that = this;
+    const that = this;
     this.dimensions = {
       gHeight: that.game.height,
       gWidth: that.game.width,
@@ -17,28 +17,21 @@ export default class extends Phaser.State {
       sectionAngle: 2*Math.PI/LWIDTH,
       // piece of radius, add one as visual buffer
       sectionSize: (that.game.height/2)/(LHEIGHT+1)
-    }
+    };
+    this.peices = [];
   }
-  preload () {}
 
   create () {
-    // const bannerText = 'SunShower'
-    // let banner = this.add.text(this.world.centerX, this.game.height - 80, bannerText)
-    // banner.font = 'Julius Sans One'
-    // banner.padding.set(10, 16)
-    // banner.fontSize = 50
-    // banner.fill = 'white'
-    // banner.anchor.setTo(0.5)
-    let dims = this.dimensions;
-    let graphics = game.add.graphics()
+    const dims = this.dimensions;
+    const graphics = game.add.graphics()
 
-    let drawBaseGrid = () => {
+    const drawBaseGrid = () => {
       // bars
       graphics.lineStyle(1, 0x100900);
       for (let i = 0; i < dims.lWidth; i++) {
         graphics.beginFill();
         graphics.moveTo(this.world.centerX, this.world.centerY);
-        let end = utils.convertToScreenCoordinates(dims, {x: i, y: 0});
+        const end = utils.convertToScreenCoordinates(dims, {x: i, y: 0});
         graphics.lineTo(end.x, end.y);
         graphics.endFill();
       }
@@ -46,7 +39,7 @@ export default class extends Phaser.State {
       graphics.moveTo(0, 0);
       graphics.beginFill(0, 0);
       for (let i = 1; i < dims.lHeight; i++) {
-        let radius = i * dims.sectionSize;
+        const radius = i * dims.sectionSize;
         graphics.drawCircle(game.world.centerX, game.world.centerY, radius*2);
       }
       graphics.endFill();
@@ -55,12 +48,12 @@ export default class extends Phaser.State {
       graphics.drawCircle(game.world.centerX, game.world.centerY, 6);
     }
 
-    drawBaseGrid();   
-
-    var tick = () => {
+    const tick = () => {
       // move or lock pieces
       // for each piece, tick
     }
+
+    drawBaseGrid();
 
     this.tickEvent = this.game.time.events.loop(1000, tick, this)
   }
