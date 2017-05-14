@@ -29,31 +29,33 @@ export default class extends Phaser.State {
     // banner.fontSize = 50
     // banner.fill = 'white'
     // banner.anchor.setTo(0.5)
+    let dims = this.dimensions;
+    let graphics = game.add.graphics()
 
-    let graphics = this.add.graphics()
-
-    // draw base grid
-    graphics.lineStyle(1, 0x090909);
-    for (var i = 0; i < this.dimensions.lWidth; i++) {
-      graphics.beginFill();
-      graphics.moveTo(this.world.centerX, this.world.centerY);
-      let end = utils.convertToScreenCoordinates(this.dimensions, {x: i, y: 0});
-      graphics.lineTo(end.x, end.y);
+    let drawBaseGrid = () => {
+      // bars
+      graphics.lineStyle(1, 0x100900);
+      for (let i = 0; i < dims.lWidth; i++) {
+        graphics.beginFill();
+        graphics.moveTo(this.world.centerX, this.world.centerY);
+        let end = utils.convertToScreenCoordinates(dims, {x: i, y: 0});
+        graphics.lineTo(end.x, end.y);
+        graphics.endFill();
+      }
+      // concentric circles, empty
+      graphics.moveTo(0, 0);
+      graphics.beginFill(0, 0);
+      for (let i = 1; i < dims.lHeight; i++) {
+        let radius = i * dims.sectionSize;
+        graphics.drawCircle(game.world.centerX, game.world.centerY, radius*2);
+      }
       graphics.endFill();
+      // "sun"
+      graphics.beginFill(0xAAAA00);
+      graphics.drawCircle(game.world.centerX, game.world.centerY, 6);
     }
-    
-    // set a fill and line style
-    graphics.moveTo(this.world.centerX, this.world.centerY);
-    graphics.beginFill(0xFF3300);
-    let tc1 = utils.convertToScreenCoordinates(this.dimensions, {x: 1, y: 0});
-    let tc2 = utils.convertToScreenCoordinates(this.dimensions, {x: 6, y: 0});
-    let tc3 = utils.convertToScreenCoordinates(this.dimensions, {x: 0, y: 0});
-    graphics.drawCircle(tc1.x, tc1.y, 10);
-    graphics.drawCircle(tc2.x, tc2.y, 10);
-    graphics.drawCircle(tc3.x, tc3.y, 10);
-    graphics.endFill();
-    
-    
+
+    drawBaseGrid();   
 
     var tick = () => {
       // move or lock pieces
