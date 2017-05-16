@@ -18,7 +18,7 @@ export default class extends Phaser.State {
       this.state.start('Game');
     });
     startBtn.events.onInputOver.add(function (target) {
-            target.fill = "#AAAA00";
+            target.fill = "#EEEE00";
     });
     startBtn.events.onInputOut.add(function (target) {
             target.fill = "white";
