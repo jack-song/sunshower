@@ -4,18 +4,28 @@ const PIECE_PROTOTYPE = {
   // add a point to the piece using coordinates
   add: function (lco) {
     this.points.push(lco);
+
+    // create new column if needed
+    if(!this.mask[lco.x]) {
+      this.mask[lco.x] = [];
+    }
+
     this.mask[lco.x][lco.y] = true;
   },
   isTaken: (lco) => {
-    // implement warp around
-    let x  = lco.x;
-    if (x === MAX_X) {
-      x = 0;
-    }
-
     return this.mask[x][lco.y];
   }
 };
+
+const dropPiece = (piece) => {
+  const genPiece = createPiece();
+
+  piece.points.forEach((element, index) => {
+    genPiece.add({x: element.x, y: element.y-1});
+  });
+
+  return genPiece;
+}
 
 const drawPiece = (piece, dims, graphics) => {
   // draw conections
@@ -36,7 +46,7 @@ const drawPiece = (piece, dims, graphics) => {
     // draw arc to next point
     const r = utils.getScreenRadius(dims, element);
     const a = utils.getScreenAngle(dims, element);
-    if (piece.mask[element.x+1][element.y]) {
+    if (piece.mask[element.x+1] && piece.mask[element.x+1][element.y]) {
       graphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, a+dims.SEC_ANGLE, false);
     }
 
@@ -51,22 +61,18 @@ const drawPiece = (piece, dims, graphics) => {
   });
 }
 
-const createPiece = (MAX_X) => {
+const createPiece = () => {
   const p = Object.create(PIECE_PROTOTYPE);
 
   // for quick existance checks
   p.mask = [];
-  for (let i=0;i<MAX_X;i++) {
-     p.mask[i] = [];
-  }
 
   p.points = [];
 
   // color is generated randomly in bounds
   p.color = 0xAAAAAA;
-  p.MAX_X = MAX_X;
 
   return p;
 }
 
-export { createPiece, drawPiece }
+export { createPiece, drawPiece, dropPiece }
