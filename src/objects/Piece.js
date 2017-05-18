@@ -2,7 +2,7 @@ import utils from '../utils'
 
 const PIECE_PROTOTYPE = {
   // add a point to the piece using coordinates
-  add: function (lco) {
+  add(lco) {
     this.points.push(lco);
 
     // create new column if needed
@@ -12,8 +12,17 @@ const PIECE_PROTOTYPE = {
 
     this.mask[lco.x][lco.y] = true;
   },
-  isTaken: (lco) => {
-    return this.mask[x][lco.y];
+  contains(lco) {
+    if (!this.mask[lco.x]) {
+      return false;
+    }
+    return this.mask[lco.x][lco.y];
+  },
+  getPoints() {
+    return this.points;
+  },
+  isEmpty() {
+    return this.points.length === 0;
   }
 };
 
@@ -28,6 +37,10 @@ const dropPiece = (piece) => {
 }
 
 const drawPiece = (piece, dims, graphics) => {
+  if (piece.isEmpty()) {
+    return;
+  }
+
   // draw conections
   piece.points.forEach((element, index) => {
     // get screen positions
@@ -64,15 +77,24 @@ const drawPiece = (piece, dims, graphics) => {
 const createPiece = () => {
   const p = Object.create(PIECE_PROTOTYPE);
 
-  // for quick existance checks
   p.mask = [];
-
   p.points = [];
-
-  // color is generated randomly in bounds
   p.color = 0xAAAAAA;
-
   return p;
 }
 
-export { createPiece, drawPiece, dropPiece }
+const mergePieces = (first, second) => {
+  const genPiece = createPiece();
+
+  first.points.forEach((element) => {
+    genPiece.add({x: element.x, y: element.y});
+  });
+
+  second.points.forEach((element) => {
+    genPiece.add({x: element.x, y: element.y});
+  });
+
+  return genPiece;
+}
+
+export { createPiece, drawPiece, dropPiece, mergePieces }
