@@ -6,6 +6,10 @@ import utils from '../utils'
 const LWIDTH = 24;
 const LHEIGHT = 8;
 
+const rand = (upper) => {
+  return Math.floor(Math.random()*upper);
+}
+
 const generateBaseTexture = (dims, graphics) => {
   // bars
   graphics.lineStyle(1, 0x121200);
@@ -26,11 +30,57 @@ const generateBaseTexture = (dims, graphics) => {
   graphics.endFill();
   // "sun"
   graphics.beginFill(0xEEEE00);
-  graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, 8);
+  graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, 6);
 
   const tex = graphics.generateTexture();
   graphics.destroy();
   return tex;
+}
+
+const spawnTetromino = (lco) => {
+  const piece = createPiece();
+  // place the root point
+  piece.add(lco);
+
+  switch (rand(7)) {
+    case 0: // I
+      piece.add({x: lco.x+1, y: lco.y});
+      piece.add({x: lco.x+2, y: lco.y});
+      piece.add({x: lco.x-1, y: lco.y});
+      break;
+    case 1: // J
+      piece.add({x: lco.x+1, y: lco.y});
+      piece.add({x: lco.x-1, y: lco.y});
+      piece.add({x: lco.x-1, y: lco.y+1});
+      break;
+    case 2: // L
+      piece.add({x: lco.x+1, y: lco.y});
+      piece.add({x: lco.x-1, y: lco.y});
+      piece.add({x: lco.x+1, y: lco.y+1});
+      break;
+    case 3: // O
+      piece.add({x: lco.x+1, y: lco.y});
+      piece.add({x: lco.x, y: lco.y+1});
+      piece.add({x: lco.x+1, y: lco.y+1});
+      break;
+    case 4: // S 
+      piece.add({x: lco.x-1, y: lco.y});
+      piece.add({x: lco.x, y: lco.y+1});
+      piece.add({x: lco.x+1, y: lco.y+1});
+      break;
+    case 5: // T
+      piece.add({x: lco.x+1, y: lco.y});
+      piece.add({x: lco.x-1, y: lco.y});
+      piece.add({x: lco.x, y: lco.y+1});
+      break;
+    default: // Z
+      piece.add({x: lco.x+1, y: lco.y});
+      piece.add({x: lco.x, y: lco.y+1});
+      piece.add({x: lco.x-1, y: lco.y+1});
+      break;
+  }
+
+  return piece;
 }
 
 const isLanded = (piece, landPiece) => {
@@ -76,6 +126,13 @@ export default class extends Phaser.State {
       // move or lock pieces
       // for each piece, tick
       console.log("tick");
+
+      // 1/5 chance of generating a new piece every tick
+      if (rand(2) === 0)  {
+        state.pieces.push(spawnTetromino({x: rand(dims.L_WIDTH), y: dims.L_HEIGHT+1}));
+      }
+
+      // clear pieces
       pGraphics.clear();
 
       const newPieces = [];
@@ -85,9 +142,11 @@ export default class extends Phaser.State {
 
         if (isLanded(np, state.landPiece)) {
           state.landPiece = mergePieces(piece, state.landPiece);
+          state.landPiece.correct(dims.L_WIDTH)
         } else {
           // replace the old dropped piece if new one is valid
           newPieces.push(np);
+          np.correct(dims.L_WIDTH);
           // draw the new piece
           drawPiece(np, dims, pGraphics);
         }
@@ -100,12 +159,12 @@ export default class extends Phaser.State {
       state.pieces = newPieces;
     }
 
-    const p = createPiece();
-    p.add({x: 4, y: 7});
-    p.add({x: 4, y: 8});
-    p.add({x: 4, y: 6});
-    p.add({x: 3, y: 6});
-    state.pieces.push(p);
+    // const p = createPiece();
+    // p.add({x: 4, y: 7});
+    // p.add({x: 4, y: 8});
+    // p.add({x: 4, y: 6});
+    // p.add({x: 3, y: 6});
+    // state.pieces.push(p);
 
     state.tickEvent = state.game.time.events.loop(1000, tick, state);
   }

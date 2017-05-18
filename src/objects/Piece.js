@@ -23,7 +23,12 @@ const PIECE_PROTOTYPE = {
   },
   isEmpty() {
     return this.points.length === 0;
-  }
+  },
+  correct(width) {
+  this.points.forEach((element) => {
+    element.x = element.x % width;
+  });
+}
 };
 
 const dropPiece = (piece) => {
@@ -43,13 +48,16 @@ const drawPiece = (piece, dims, graphics) => {
 
   // draw conections
   piece.points.forEach((element, index) => {
+    if (element.y > dims.L_HEIGHT) {
+      return;
+    }
     // get screen positions
     const sco = utils.getScreenCoordinates(dims, element);
 
-    graphics.lineStyle(2, piece.color);
+    graphics.lineStyle(1, piece.color);
 
     // draw radial line to next point
-    if (piece.mask[element.x][element.y+1]) {
+    if (element.y < dims.L_HEIGHT && piece.mask[element.x][element.y+1]) {
       graphics.beginFill();
       graphics.moveTo(sco.x, sco.y);
       const end = utils.getScreenCoordinates(dims, {x: element.x, y: element.y+1});
@@ -59,14 +67,15 @@ const drawPiece = (piece, dims, graphics) => {
     // draw arc to next point
     const r = utils.getScreenRadius(dims, element);
     const a = utils.getScreenAngle(dims, element);
-    if (piece.mask[element.x+1] && piece.mask[element.x+1][element.y]) {
+    const testX = (element.x+1) % dims.L_WIDTH;
+    if (piece.mask[testX] && piece.mask[testX][element.y]) {
       graphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, a+dims.SEC_ANGLE, false);
     }
 
     // draw point
     graphics.lineStyle(0);
     // get size of circle, higher is smaller
-    const size = 30 - element.y*3;
+    const size = 24 - element.y*2;
 
     graphics.beginFill(piece.color);
     graphics.drawCircle(sco.x, sco.y, size);
@@ -74,12 +83,13 @@ const drawPiece = (piece, dims, graphics) => {
   });
 }
 
-const createPiece = () => {
+const createPiece = (type) => {
   const p = Object.create(PIECE_PROTOTYPE);
 
   p.mask = [];
   p.points = [];
   p.color = 0xAAAAAA;
+
   return p;
 }
 
