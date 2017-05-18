@@ -12,6 +12,7 @@ Made with phaser, https://github.com/lean/phaser-es6-webpack.
 - row elimination
 - losing logic
 - rotation
+- font backup
 - tweened animations
 - scoring
 - instructions screen

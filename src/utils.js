@@ -20,4 +20,8 @@ const getScreenCoordinates = (dims, lco) => {
   }
 }
 
-export default { getScreenCoordinates, getScreenRadius, getScreenAngle }
+const rand = (upper) => {
+  return Math.floor(Math.random()*upper);
+}
+
+export default { getScreenCoordinates, getScreenRadius, getScreenAngle, rand }

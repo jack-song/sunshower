@@ -32,7 +32,7 @@ const PIECE_PROTOTYPE = {
 };
 
 const dropPiece = (piece) => {
-  const genPiece = createPiece();
+  const genPiece = createPiece(piece.color);
 
   piece.points.forEach((element, index) => {
     genPiece.add({x: element.x, y: element.y-1});
@@ -75,7 +75,7 @@ const drawPiece = (piece, dims, graphics) => {
     // draw point
     graphics.lineStyle(0);
     // get size of circle, higher is smaller
-    const size = 24 - element.y*2;
+    const size = 22 - element.y*2;
 
     graphics.beginFill(piece.color);
     graphics.drawCircle(sco.x, sco.y, size);
@@ -83,18 +83,18 @@ const drawPiece = (piece, dims, graphics) => {
   });
 }
 
-const createPiece = (type) => {
+const createPiece = (color) => {
   const p = Object.create(PIECE_PROTOTYPE);
 
   p.mask = [];
   p.points = [];
-  p.color = 0xAAAAAA;
+  p.color = color || 0xFFFFDD;
 
   return p;
 }
 
 const mergePieces = (first, second) => {
-  const genPiece = createPiece();
+  const genPiece = createPiece(first.color);
 
   first.points.forEach((element) => {
     genPiece.add({x: element.x, y: element.y});
