@@ -3,8 +3,8 @@ import Phaser from 'phaser'
 import { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece }  from '../objects/Piece'
 import utils from '../utils'
 
-const LWIDTH = 22;
-const LHEIGHT = 8;
+const LWIDTH = 20;
+const LHEIGHT = 10;
 
 const generateBaseTexture = (dims, graphics) => {
   // bars
@@ -113,6 +113,39 @@ const isLanded = (piece, landPiece) => {
   return false;
 }
 
+const breakLand = (landPiece, dims) => {
+  let drop = 0;
+  const newLand = createPiece(dims.L_WIDTH);
+
+  for (let y = 0; y < dims.L_HEIGHT; y++) {
+    let foundGap = false;
+    let empty = true;
+    for (let x = 0; x < dims.L_WIDTH; x++) {
+      if (landPiece.contains({x: x, y: y})) {
+        empty = false;
+      } else {
+        foundGap = true;
+      }
+    }
+
+    if (empty) {
+      break;
+    }
+
+    if (!foundGap) {
+      drop += 1;
+    } else { // paste row into the new landPiece
+      for (let x = 0; x < dims.L_WIDTH; x++) {
+        if (landPiece.contains({x: x, y: y})) {
+          newLand.add({x: x, y: y-drop});
+        }
+      }
+    }
+  }
+
+  return newLand;
+}
+
 export default class extends Phaser.State {
   init () {
     this.dimensions = {
@@ -134,40 +167,38 @@ export default class extends Phaser.State {
     background.anchor.set(0.5);
     this.pGraphics = this.game.add.graphics();
     this.lGraphics = this.game.add.graphics();
+    this.generateCooldown = -1;
+  }
+
+  tick () {
+    if (this.generateCooldown < 0 && utils.rand(2) === 0)  {
+      this.pieces.push(spawnTetromino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
+      this.generateCooldown = 3;
+    } else {
+      this.generateCooldown -= 1;
+    }
+
+    const newPieces = [];
+    this.pieces.forEach((piece, index, array) => {
+      // get the dropped piece
+      let np = dropPiece(piece);
+
+      if (isLanded(np, this.landPiece)) {
+        this.landPiece = mergePieces(this.landPiece, piece);
+      } else {
+        // replace the old dropped piece if new one is valid
+        newPieces.push(np);
+      }
+    });
+    // update to new piece state
+    this.pieces = newPieces;
+
+    this.landPiece = breakLand(this.landPiece, this.dimensions);
+    reDraw(this.landPiece, this.lGraphics, this.pieces, this.pGraphics, this.dimensions);
   }
 
   create () {
-    const state = this;
-    const dims = state.dimensions;
-    let generateCooldown = -1;
-
-    const tick = () => {
-      if (generateCooldown < 0 && utils.rand(2) === 0)  {
-        state.pieces.push(spawnTetromino(dims.L_WIDTH, {x: utils.rand(dims.L_WIDTH), y: dims.L_HEIGHT+1}));
-        generateCooldown = 2;
-      } else {
-        generateCooldown -= 1;
-      }
-
-      const newPieces = [];
-      state.pieces.forEach((piece, index, array) => {
-        // get the dropped piece
-        let np = dropPiece(piece);
-
-        if (isLanded(np, state.landPiece)) {
-          state.landPiece = mergePieces(state.landPiece, piece);
-        } else {
-          // replace the old dropped piece if new one is valid
-          newPieces.push(np);
-        }
-      });
-      // update to new piece state
-      state.pieces = newPieces;
-
-      reDraw(this.landPiece, this.lGraphics, this.pieces, this.pGraphics, this.dimensions);
-    }
-
-    state.tickEvent = state.game.time.events.loop(1000, tick, state);
+    this.tickEvent = this.game.time.events.loop(1000, this.tick, this);
   }
 
   update () {
@@ -202,24 +233,33 @@ export default class extends Phaser.State {
             newPieces.push(piece);
           }
         });
-        
+
         this.pieces = newPieces;
       }
 
       this.landPiece = newLand;
+      this.landPiece = breakLand(this.landPiece, this.dimensions);
       reDraw(this.landPiece, this.lGraphics, this.pieces, this.pGraphics, this.dimensions);
     }
 
-    if (this.released) {
-      if (this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
+    if (this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
+      if (this.released) {
         shiftLandPiece(1);
         this.released = false;
+      }
 
-      } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
+    } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
+      if (this.released) {
         shiftLandPiece(-1);
         this.released = false;
       }
-    } else if (!this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT) && !this.game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
+
+    } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.DOWN)) {
+      if (this.released) {
+        this.tick();
+        this.released = false;
+      }
+    } else {
       this.released = true;
     }
   }
