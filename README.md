@@ -8,7 +8,6 @@
 Made with phaser, https://github.com/lean/phaser-es6-webpack.
 
 ## Todo
-- input and piece moving
 - row elimination
 - losing logic
 - rotation

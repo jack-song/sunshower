@@ -88,6 +88,16 @@ const spawnTetromino = (max, lco) => {
   return piece;
 }
 
+const reDraw = (landPiece, lGraphics, pieces, pGraphics, dims) => {
+  pGraphics.clear();
+  pieces.forEach((piece, index, array) => {
+    drawPiece(piece, dims, pGraphics);
+  });
+
+  lGraphics.clear();
+  drawPiece(landPiece, dims, lGraphics);
+}
+
 const isLanded = (piece, landPiece) => {
   const points = piece.getPoints();
   for(let i = 0; i < points.length; i++) {
@@ -139,9 +149,6 @@ export default class extends Phaser.State {
         generateCooldown -= 1;
       }
 
-      // clear pieces
-      this.pGraphics.clear();
-
       const newPieces = [];
       state.pieces.forEach((piece, index, array) => {
         // get the dropped piece
@@ -152,42 +159,64 @@ export default class extends Phaser.State {
         } else {
           // replace the old dropped piece if new one is valid
           newPieces.push(np);
-          // draw the new piece
-          drawPiece(np, dims, this.pGraphics);
         }
       });
-
-      // redraw the land piece
-      this.lGraphics.clear();
-      drawPiece(state.landPiece, dims, this.lGraphics);
-
       // update to new piece state
       state.pieces = newPieces;
+
+      reDraw(this.landPiece, this.lGraphics, this.pieces, this.pGraphics, this.dimensions);
     }
 
-    state.tickEvent = state.game.time.events.loop(500, tick, state);
-  }
-
-  render () {
-    
+    state.tickEvent = state.game.time.events.loop(1000, tick, state);
   }
 
   update () {
-    const updateLandPiece = () => {
-      // redraw the land piece
-      this.lGraphics.clear();
-      drawPiece(this.landPiece, this.dimensions, this.lGraphics);
+    const shiftLandPiece = (shift) => {
+      // check for any collisions with new land
+      let foundCollision = true;
+      let newLand;
+
+      // if any collisions, repeat collision detection with new land
+      while (foundCollision) {
+        const newPieces = [];
+        newLand = shiftPiece(this.landPiece, shift);
+        foundCollision = false;
+        
+        this.pieces.forEach((piece) => {
+          let pieceCollides = false;
+          const points = piece.getPoints();
+
+          // check if piece collides with the landPiece
+          for (let i = 0; i < points.length; i++) {
+            if (newLand.contains(points[i])) {
+              pieceCollides = true;
+              break;
+            }
+          }
+
+          // either merge or keep the piece as is
+          if (pieceCollides) {
+            foundCollision = true;
+            this.landPiece = mergePieces(this.landPiece, piece);
+          } else {
+            newPieces.push(piece);
+          }
+        });
+        
+        this.pieces = newPieces;
+      }
+
+      this.landPiece = newLand;
+      reDraw(this.landPiece, this.lGraphics, this.pieces, this.pGraphics, this.dimensions);
     }
 
     if (this.released) {
       if (this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
-        this.landPiece = shiftPiece(this.landPiece, 1);
-        updateLandPiece();
+        shiftLandPiece(1);
         this.released = false;
 
       } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
-        this.landPiece = shiftPiece(this.landPiece, -1);
-        updateLandPiece();
+        shiftLandPiece(-1);
         this.released = false;
       }
     } else if (!this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT) && !this.game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
