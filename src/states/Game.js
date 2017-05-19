@@ -5,10 +5,12 @@ import utils from '../utils'
 
 const LWIDTH = 20;
 const LHEIGHT = 10;
+const COOLDOWN = 3;
+const START_RATE = 500;
 
 const generateBaseTexture = (dims, graphics) => {
   // bars
-  graphics.lineStyle(1, 0x202000);
+  graphics.lineStyle(1, 0x303000);
   for (let i = 0; i < dims.L_WIDTH; i++) {
     graphics.beginFill();
     graphics.moveTo(dims.CENTER_X, dims.CENTER_Y);
@@ -88,16 +90,6 @@ const spawnTetromino = (max, lco) => {
   return piece;
 }
 
-const reDraw = (landPiece, lGraphics, pieces, pGraphics, dims) => {
-  pGraphics.clear();
-  pieces.forEach((piece, index, array) => {
-    drawPiece(piece, dims, pGraphics);
-  });
-
-  lGraphics.clear();
-  drawPiece(landPiece, dims, lGraphics);
-}
-
 const isLanded = (piece, landPiece) => {
   const points = piece.getPoints();
   for(let i = 0; i < points.length; i++) {
@@ -117,7 +109,7 @@ const breakLand = (landPiece, dims) => {
   let drop = 0;
   const newLand = createPiece(dims.L_WIDTH);
 
-  for (let y = 0; y < dims.L_HEIGHT; y++) {
+  for (let y = 0; y <= dims.L_HEIGHT; y++) {
     let foundGap = false;
     let empty = true;
     for (let x = 0; x < dims.L_WIDTH; x++) {
@@ -170,10 +162,20 @@ export default class extends Phaser.State {
     this.generateCooldown = -1;
   }
 
+  reDraw () {
+    this.pGraphics.clear();
+    this.pieces.forEach((piece) => {
+      drawPiece(piece, this.dimensions, this.pGraphics);
+    });
+
+    this.lGraphics.clear();
+    drawPiece(this.landPiece, this.dimensions, this.lGraphics);
+  }
+
   tick () {
     if (this.generateCooldown < 0 && utils.rand(2) === 0)  {
       this.pieces.push(spawnTetromino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
-      this.generateCooldown = 3;
+      this.generateCooldown = COOLDOWN;
     } else {
       this.generateCooldown -= 1;
     }
@@ -181,24 +183,38 @@ export default class extends Phaser.State {
     const newPieces = [];
     this.pieces.forEach((piece, index, array) => {
       // get the dropped piece
-      let np = dropPiece(piece);
+      let dp = dropPiece(piece);
 
-      if (isLanded(np, this.landPiece)) {
+      if (isLanded(dp, this.landPiece)) {
         this.landPiece = mergePieces(this.landPiece, piece);
       } else {
         // replace the old dropped piece if new one is valid
-        newPieces.push(np);
+        newPieces.push(dp);
       }
     });
     // update to new piece state
     this.pieces = newPieces;
 
     this.landPiece = breakLand(this.landPiece, this.dimensions);
-    reDraw(this.landPiece, this.lGraphics, this.pieces, this.pGraphics, this.dimensions);
+
+    if (this.isLoser()) {
+      this.state.start('Menu');
+    } else {
+      this.reDraw();
+    }
+  }
+
+  isLoser () {
+    for (let x = 0; x < this.dimensions.L_WIDTH; x++) {
+      if (this.landPiece.contains({x: x, y: this.dimensions.L_HEIGHT})) {
+        return true;
+      }
+    }
+    return false;
   }
 
   create () {
-    this.tickEvent = this.game.time.events.loop(1000, this.tick, this);
+    this.tickEvent = this.game.time.events.loop(START_RATE, this.tick, this);
   }
 
   update () {
@@ -239,7 +255,11 @@ export default class extends Phaser.State {
 
       this.landPiece = newLand;
       this.landPiece = breakLand(this.landPiece, this.dimensions);
-      reDraw(this.landPiece, this.lGraphics, this.pieces, this.pGraphics, this.dimensions);
+      if (this.isLoser()) {
+        this.state.start('Menu');
+      } else {
+        this.reDraw();
+      }
     }
 
     if (this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
