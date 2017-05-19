@@ -1,14 +1,14 @@
 /* globals __DEV__ */
 import Phaser from 'phaser'
-import { createPiece, drawPiece, dropPiece, mergePieces }  from '../objects/Piece'
+import { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece }  from '../objects/Piece'
 import utils from '../utils'
 
-const LWIDTH = 24;
+const LWIDTH = 22;
 const LHEIGHT = 8;
 
 const generateBaseTexture = (dims, graphics) => {
   // bars
-  graphics.lineStyle(1, 0x121200);
+  graphics.lineStyle(1, 0x202000);
   for (let i = 0; i < dims.L_WIDTH; i++) {
     graphics.beginFill();
     graphics.moveTo(dims.CENTER_X, dims.CENTER_Y);
@@ -33,7 +33,7 @@ const generateBaseTexture = (dims, graphics) => {
   return tex;
 }
 
-const spawnTetromino = (lco) => {
+const spawnTetromino = (max, lco) => {
   const r = utils.rand(255);
   const g = utils.rand(255);
   let b;
@@ -43,7 +43,7 @@ const spawnTetromino = (lco) => {
     b = utils.rand(50);
   }
 
-  const piece = createPiece(Phaser.Color.getColor(r, g, b));
+  const piece = createPiece(max, Phaser.Color.getColor(r, g, b));
   // place the root point
   piece.add(lco);
 
@@ -117,28 +117,30 @@ export default class extends Phaser.State {
       CENTER_Y: this.world.centerY
     };
     this.pieces = [];
-    this.landPiece = createPiece();
+    this.landPiece = createPiece(this.dimensions.L_WIDTH);
+    this.released = true;
+
+    const background = this.game.add.sprite(this.world.centerX, this.world.centerY, generateBaseTexture(this.dimensions, this.game.add.graphics()));
+    background.anchor.set(0.5);
+    this.pGraphics = this.game.add.graphics();
+    this.lGraphics = this.game.add.graphics();
   }
 
   create () {
     const state = this;
     const dims = state.dimensions;
-    const background = state.game.add.sprite(state.world.centerX, state.world.centerY, generateBaseTexture(dims, game.add.graphics()));
-    background.anchor.set(0.5);
-    const pGraphics = game.add.graphics();
-    let canGenerate = true;
+    let generateCooldown = -1;
 
     const tick = () => {
-      // 1/5 chance of generating a new piece every tick
-      if (canGenerate && utils.rand(2) === 0)  {
-        state.pieces.push(spawnTetromino({x: utils.rand(dims.L_WIDTH), y: dims.L_HEIGHT+1}));
-        canGenerate = false;
+      if (generateCooldown < 0 && utils.rand(2) === 0)  {
+        state.pieces.push(spawnTetromino(dims.L_WIDTH, {x: utils.rand(dims.L_WIDTH), y: dims.L_HEIGHT+1}));
+        generateCooldown = 2;
       } else {
-        canGenerate = true;
+        generateCooldown -= 1;
       }
 
       // clear pieces
-      pGraphics.clear();
+      this.pGraphics.clear();
 
       const newPieces = [];
       state.pieces.forEach((piece, index, array) => {
@@ -147,24 +149,23 @@ export default class extends Phaser.State {
 
         if (isLanded(np, state.landPiece)) {
           state.landPiece = mergePieces(state.landPiece, piece);
-          state.landPiece.correct(dims.L_WIDTH)
         } else {
           // replace the old dropped piece if new one is valid
           newPieces.push(np);
-          np.correct(dims.L_WIDTH);
           // draw the new piece
-          drawPiece(np, dims, pGraphics);
+          drawPiece(np, dims, this.pGraphics);
         }
       });
 
-      // draw the land piece
-      drawPiece(state.landPiece, dims, pGraphics);
+      // redraw the land piece
+      this.lGraphics.clear();
+      drawPiece(state.landPiece, dims, this.lGraphics);
 
       // update to new piece state
       state.pieces = newPieces;
     }
 
-    state.tickEvent = state.game.time.events.loop(1000, tick, state);
+    state.tickEvent = state.game.time.events.loop(500, tick, state);
   }
 
   render () {
@@ -172,6 +173,25 @@ export default class extends Phaser.State {
   }
 
   update () {
+    const updateLandPiece = () => {
+      // redraw the land piece
+      this.lGraphics.clear();
+      drawPiece(this.landPiece, this.dimensions, this.lGraphics);
+    }
 
+    if (this.released) {
+      if (this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
+        this.landPiece = shiftPiece(this.landPiece, 1);
+        updateLandPiece();
+        this.released = false;
+
+      } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
+        this.landPiece = shiftPiece(this.landPiece, -1);
+        updateLandPiece();
+        this.released = false;
+      }
+    } else if (!this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT) && !this.game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
+      this.released = true;
+    }
   }
 }

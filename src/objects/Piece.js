@@ -1,16 +1,27 @@
 import utils from '../utils'
 
+const mod = (n, m) => {
+        return ((n % m) + m) % m;
+}
+
 const PIECE_PROTOTYPE = {
   // add a point to the piece using coordinates
   add(lco) {
-    this.points.push(lco);
+    // correct for x limits
+    const real = {x: mod(lco.x, this.MAX_X), y: lco.y};
 
-    // create new column if needed
-    if(!this.mask[lco.x]) {
-      this.mask[lco.x] = [];
+    if (this.contains(real)) {
+      return;
     }
 
-    this.mask[lco.x][lco.y] = true;
+    this.points.push(real);
+
+    // create new column if needed
+    if(!this.mask[real.x]) {
+      this.mask[real.x] = [];
+    }
+
+    this.mask[real.x][real.y] = true;
   },
   contains(lco) {
     if (!this.mask[lco.x]) {
@@ -23,19 +34,24 @@ const PIECE_PROTOTYPE = {
   },
   isEmpty() {
     return this.points.length === 0;
-  },
-  correct(width) {
-  this.points.forEach((element) => {
-    element.x = element.x % width;
-  });
-}
+  }
 };
 
 const dropPiece = (piece) => {
-  const genPiece = createPiece(piece.color);
+  const genPiece = createPiece(piece.MAX_X, piece.color);
 
   piece.points.forEach((element, index) => {
     genPiece.add({x: element.x, y: element.y-1});
+  });
+
+  return genPiece;
+}
+
+const shiftPiece = (piece, distance) => {
+  const genPiece = createPiece(piece.MAX_X, piece.color);
+
+  piece.points.forEach((element, index) => {
+    genPiece.add({x: element.x+distance, y: element.y});
   });
 
   return genPiece;
@@ -55,7 +71,7 @@ const drawPiece = (piece, dims, graphics) => {
     const sco = utils.getScreenCoordinates(dims, element);
 
     graphics.lineStyle(1, piece.color);
-
+    
     // draw radial line to next point
     if (element.y < dims.L_HEIGHT && piece.mask[element.x][element.y+1]) {
       graphics.beginFill();
@@ -67,7 +83,7 @@ const drawPiece = (piece, dims, graphics) => {
     // draw arc to next point
     const r = utils.getScreenRadius(dims, element);
     const a = utils.getScreenAngle(dims, element);
-    const testX = (element.x+1) % dims.L_WIDTH;
+    const testX = mod(element.x+1,piece.MAX_X);
     if (piece.mask[testX] && piece.mask[testX][element.y]) {
       graphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, a+dims.SEC_ANGLE, false);
     }
@@ -83,18 +99,19 @@ const drawPiece = (piece, dims, graphics) => {
   });
 }
 
-const createPiece = (color) => {
+const createPiece = (max, color) => {
   const p = Object.create(PIECE_PROTOTYPE);
 
   p.mask = [];
   p.points = [];
   p.color = color || 0xFFFFDD;
+  p.MAX_X = max;
 
   return p;
 }
 
 const mergePieces = (first, second) => {
-  const genPiece = createPiece(first.color);
+  const genPiece = createPiece(first.MAX_X, first.color);
 
   first.points.forEach((element) => {
     genPiece.add({x: element.x, y: element.y});
@@ -107,4 +124,4 @@ const mergePieces = (first, second) => {
   return genPiece;
 }
 
-export { createPiece, drawPiece, dropPiece, mergePieces }
+export { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece }
