@@ -15,8 +15,6 @@ Made with phaser, https://github.com/lean/phaser-es6-webpack.
 - scoring
 
 - adjust section sizes
-- make pieces immutable properly
-- change mask from array to maps
 
 - instructions screen
 - sound

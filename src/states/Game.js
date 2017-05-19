@@ -45,49 +45,49 @@ const spawnTetromino = (max, lco) => {
     b = utils.rand(50);
   }
 
-  const piece = createPiece(max, Phaser.Color.getColor(r, g, b));
-  // place the root point
-  piece.add(lco);
+  let points;
 
   switch (utils.rand(7)) {
     case 0: // I
-      piece.add({x: lco.x+1, y: lco.y});
-      piece.add({x: lco.x+2, y: lco.y});
-      piece.add({x: lco.x-1, y: lco.y});
+      points = [{x: lco.x+1, y: lco.y},
+                {x: lco.x+2, y: lco.y},
+                {x: lco.x-1, y: lco.y}];
       break;
     case 1: // J
-      piece.add({x: lco.x+1, y: lco.y});
-      piece.add({x: lco.x-1, y: lco.y});
-      piece.add({x: lco.x-1, y: lco.y+1});
+      points = [{x: lco.x+1, y: lco.y},
+                {x: lco.x-1, y: lco.y},
+                {x: lco.x-1, y: lco.y+1}];
       break;
     case 2: // L
-      piece.add({x: lco.x+1, y: lco.y});
-      piece.add({x: lco.x-1, y: lco.y});
-      piece.add({x: lco.x+1, y: lco.y+1});
+      points = [{x: lco.x+1, y: lco.y},
+                {x: lco.x-1, y: lco.y},
+                {x: lco.x+1, y: lco.y+1}];
       break;
     case 3: // O
-      piece.add({x: lco.x+1, y: lco.y});
-      piece.add({x: lco.x, y: lco.y+1});
-      piece.add({x: lco.x+1, y: lco.y+1});
+      points = [{x: lco.x+1, y: lco.y},
+                {x: lco.x, y: lco.y+1},
+                {x: lco.x+1, y: lco.y+1}];
       break;
     case 4: // S 
-      piece.add({x: lco.x-1, y: lco.y});
-      piece.add({x: lco.x, y: lco.y+1});
-      piece.add({x: lco.x+1, y: lco.y+1});
+      points = [{x: lco.x-1, y: lco.y},
+                {x: lco.x, y: lco.y+1},
+                {x: lco.x+1, y: lco.y+1}];
       break;
     case 5: // T
-      piece.add({x: lco.x+1, y: lco.y});
-      piece.add({x: lco.x-1, y: lco.y});
-      piece.add({x: lco.x, y: lco.y+1});
+      points = [{x: lco.x+1, y: lco.y},
+                {x: lco.x-1, y: lco.y},
+                {x: lco.x, y: lco.y+1}];
       break;
     default: // Z
-      piece.add({x: lco.x+1, y: lco.y});
-      piece.add({x: lco.x, y: lco.y+1});
-      piece.add({x: lco.x-1, y: lco.y+1});
+      points = [{x: lco.x+1, y: lco.y},
+                {x: lco.x, y: lco.y+1},
+                {x: lco.x-1, y: lco.y+1}];
       break;
   }
 
-  return piece;
+  points.push(lco);
+
+  return createPiece(points, max, Phaser.Color.getColor(r, g, b));;
 }
 
 const isLanded = (piece, landPiece) => {
@@ -107,35 +107,25 @@ const isLanded = (piece, landPiece) => {
 
 const breakLand = (landPiece, dims) => {
   let drop = 0;
-  const newLand = createPiece(dims.L_WIDTH);
+  const points = [];
 
   for (let y = 0; y <= dims.L_HEIGHT; y++) {
-    let foundGap = false;
-    let empty = true;
-    for (let x = 0; x < dims.L_WIDTH; x++) {
-      if (landPiece.contains({x: x, y: y})) {
-        empty = false;
-      } else {
-        foundGap = true;
-      }
-    }
-
-    if (empty) {
+    if (landPiece.rowIsEmpty(y)) {
       break;
     }
 
-    if (!foundGap) {
+    if (landPiece.rowHasEnough(y, dims.L_WIDTH)) {
       drop += 1;
     } else { // paste row into the new landPiece
       for (let x = 0; x < dims.L_WIDTH; x++) {
         if (landPiece.contains({x: x, y: y})) {
-          newLand.add({x: x, y: y-drop});
+          points.push({x: x, y: y-drop});
         }
       }
     }
   }
 
-  return newLand;
+  return createPiece(points, dims.L_WIDTH);
 }
 
 export default class extends Phaser.State {
@@ -152,7 +142,7 @@ export default class extends Phaser.State {
       CENTER_Y: this.world.centerY
     };
     this.pieces = [];
-    this.landPiece = createPiece(this.dimensions.L_WIDTH);
+    this.landPiece = createPiece([], this.dimensions.L_WIDTH);
     this.released = true;
 
     const background = this.game.add.sprite(this.world.centerX, this.world.centerY, generateBaseTexture(this.dimensions, this.game.add.graphics()));
@@ -205,10 +195,8 @@ export default class extends Phaser.State {
   }
 
   isLoser () {
-    for (let x = 0; x < this.dimensions.L_WIDTH; x++) {
-      if (this.landPiece.contains({x: x, y: this.dimensions.L_HEIGHT})) {
-        return true;
-      }
+    if (!this.landPiece.rowIsEmpty(this.dimensions.L_HEIGHT)) {
+      return true;
     }
     return false;
   }
