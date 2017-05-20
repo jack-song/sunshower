@@ -9,12 +9,14 @@ Made with phaser, https://github.com/lean/phaser-es6-webpack.
 
 ## Todo
 - rotation
+- progressive difficulty
+- scoring
+
+- google analytics
+- ship
 
 - font backup
 - tweened animations
-- scoring
-
-- adjust section sizes
 
 - instructions screen
 - sound

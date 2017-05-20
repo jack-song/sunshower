@@ -21,8 +21,8 @@ const generateBaseTexture = (dims, graphics) => {
   // concentric circles, empty
   graphics.moveTo(0, 0);
   graphics.beginFill(0, 0);
-  for (let i = 1; i <= dims.L_HEIGHT; i++) {
-    const radius = i * dims.SEC_SIZE;
+  for (let i = 0; i < dims.L_HEIGHT; i++) {
+    const radius = utils.getScreenRadius(dims, i);
     graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, radius*2)
   }
   graphics.endFill();

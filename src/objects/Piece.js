@@ -75,7 +75,7 @@ const drawPiece = (piece, dims, graphics) => {
       graphics.endFill();
     }
     // draw arc to next point
-    const r = utils.getScreenRadius(dims, element);
+    const r = utils.getScreenRadius(dims, element.y);
     const a = utils.getScreenAngle(dims, element);
     const testX = mod(element.x+1,piece.MAX_X);
     if (piece.contains({x: testX, y: element.y})) {

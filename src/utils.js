@@ -2,16 +2,20 @@ const getScreenAngle = (dims, lco) => {
   return lco.x*dims.SEC_ANGLE;
 }
 
-const getScreenRadius = (dims, lco) => {
+const getScreenRadius = (dims, y) => {
+  if (y === dims.L_HEIGHT) {
+    return 0;
+  }
   // radius is distance from top to point
   // toward center is higher, use subtraction to do the inversion
-  const sectionNumber = dims.L_HEIGHT-lco.y;
-  return sectionNumber*dims.SEC_SIZE;
+  const sectionNumber = dims.L_HEIGHT-y;
+  // smaller towards the center
+  return sectionNumber*(dims.SEC_SIZE - y*2);
 }
 
 // dimensions, local coordinates
 const getScreenCoordinates = (dims, lco) => {
-  const r = getScreenRadius(dims, lco);
+  const r = getScreenRadius(dims, lco.y);
   const a = getScreenAngle(dims, lco);
   return {
     // add width and height /2 to center for polar drawing
