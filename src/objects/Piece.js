@@ -1,7 +1,9 @@
 import utils from '../utils'
 
+const DEFAULT_COLOR = 0x657b83;
+
 const mod = (n, m) => {
-        return ((n % m) + m) % m;
+  return ((n % m) + m) % m;
 }
 
 const PIECE_PROTOTYPE = {
@@ -21,13 +23,13 @@ const PIECE_PROTOTYPE = {
     if (!this.mask[row]) {
       return true;
     }
-    return this.mask[row].length === 0;
+    return Object.keys(this.mask[row]).length === 0;
   },
   rowHasEnough(row, length) {
     if (!this.mask[row]) {
       return false;
     }
-    return this.mask[row].length >= length;
+    return Object.keys(this.mask[row]).length >= length;
   }
 };
 
@@ -38,7 +40,12 @@ const dropPiece = (piece) => {
     points.push({x: element.x, y: element.y-1});
   });
 
-  return createPiece(points, piece.MAX_X, piece.color);
+  let root = null;
+  if (piece.root) {
+    root = {x: piece.root.x, y: piece.root.y-1};
+  }
+
+  return createPiece(points, piece.MAX_X, piece.color, root);
 }
 
 const shiftPiece = (piece, distance) => {
@@ -48,7 +55,29 @@ const shiftPiece = (piece, distance) => {
     points.push({x: element.x+distance, y: element.y});
   });
 
-  return createPiece(points, piece.MAX_X, piece.color);
+  let root = null;
+  if (piece.root) {
+    root = {x: piece.root.x+distance, y: piece.root.y};
+  }
+
+  return createPiece(points, piece.MAX_X, piece.color, root);
+}
+
+// assume we always go clockwise
+const rotatePiece = (piece) => {
+  if (!piece.root) {
+    return piece;
+  }
+
+  const points = [];
+
+  piece.getPoints().forEach((point) => {
+    const dx = point.x - piece.root.x;
+    const dy = point.y - piece.root.y;
+    points.push({x: piece.root.x + dy, y: piece.root.y - dx});
+  });
+
+  return createPiece(points, piece.MAX_X, piece.color, piece.root);
 }
 
 const drawPiece = (piece, dims, graphics) => {
@@ -64,7 +93,7 @@ const drawPiece = (piece, dims, graphics) => {
     // get screen positions
     const sco = utils.getScreenCoordinates(dims, element);
 
-    graphics.lineStyle(1, piece.color);
+    graphics.lineStyle(2, piece.color);
     
     // draw radial line to next point
     if (element.y < dims.L_HEIGHT && piece.contains({x: element.x, y: element.y+1})) {
@@ -85,7 +114,7 @@ const drawPiece = (piece, dims, graphics) => {
     // draw point
     graphics.lineStyle(0);
     // get size of circle, higher is smaller
-    const size = 22 - element.y*2;
+    const size = 12 - element.y;
 
     graphics.beginFill(piece.color);
     graphics.drawCircle(sco.x, sco.y, size);
@@ -93,13 +122,14 @@ const drawPiece = (piece, dims, graphics) => {
   });
 }
 
-const createPiece = (points, max, color) => {
+const createPiece = (points, max, color, root) => {
   const p = Object.create(PIECE_PROTOTYPE);
 
   p.points = [];
 
   // MASK IS Y:X CAUSE THAT WAY IS BETTER
   p.mask = {};
+  p.root = root;
 
   points.forEach((point) => {
     // correct for x limits
@@ -114,7 +144,7 @@ const createPiece = (points, max, color) => {
     p.mask[real.y][real.x] = true;
   });
   
-  p.color = color || 0xFFFFDD;
+  p.color = color || DEFAULT_COLOR;
   p.MAX_X = max;
 
   return p;
@@ -131,7 +161,7 @@ const mergePieces = (first, second) => {
     points.push({x: element.x, y: element.y});
   });
 
-  return createPiece(points, first.MAX_X, first.color);
+  return createPiece(points, first.MAX_X, first.color, first.root);
 }
 
-export { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece }
+export { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece, rotatePiece }

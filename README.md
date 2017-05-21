@@ -8,12 +8,11 @@
 Made with phaser, https://github.com/lean/phaser-es6-webpack.
 
 ## Todo
-- rotation
-- progressive difficulty
-- scoring
-
 - google analytics
 - ship
+
+- less drawing to improve CPU
+- less memory usage
 
 - font backup
 - tweened animations

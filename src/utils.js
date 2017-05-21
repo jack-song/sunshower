@@ -1,3 +1,6 @@
+const MENU_ITEM_COLOR = '#000000';
+const MENU_ITEM_HOVER_COLOR = '#073642';
+
 const getScreenAngle = (dims, lco) => {
   return lco.x*dims.SEC_ANGLE;
 }
@@ -28,4 +31,22 @@ const rand = (upper) => {
   return Math.floor(Math.random()*upper);
 }
 
-export default { getScreenCoordinates, getScreenRadius, getScreenAngle, rand }
+const addMenuItem = (size, content, relativePosition, state, clickFunction) => {
+    const style = { font: '' + size + 'pt Courier New', fill: MENU_ITEM_COLOR};
+    const item = state.add.text(state.world.centerX, state.world.centerY + relativePosition, content, style);
+    item.anchor.x = 0.5;
+    item.anchor.y = 0.5;
+
+    if (clickFunction) {
+      item.inputEnabled = true;
+      item.events.onInputUp.add(clickFunction);
+      item.events.onInputOver.add(function (target) {
+              target.fill = MENU_ITEM_HOVER_COLOR;
+      });
+      item.events.onInputOut.add(function (target) {
+              target.fill = MENU_ITEM_COLOR;
+      });
+    }
+}
+
+export default { getScreenCoordinates, getScreenRadius, getScreenAngle, rand, addMenuItem }

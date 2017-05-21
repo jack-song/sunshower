@@ -1,27 +1,16 @@
 /* globals __DEV__ */
 import Phaser from 'phaser'
+import utils from '../utils'
+
+const BACKGROUND_COLOR = '#f9f6f2';
 
 export default class extends Phaser.State {
   create () {
-    const titleStyle = { font: '50pt Julius Sans One', fill: 'white'};
-    const title = this.add.text(this.world.centerX, this.world.centerY - 100, 'SunShower', titleStyle);
-    title.anchor.x = 0.5;
-    title.anchor.y = 0.5;
+    this.stage.backgroundColor = BACKGROUND_COLOR;
+    utils.addMenuItem(30, "SunShower", -100, this);
 
-    const optionStyle = { font: '20pt Julius Sans One', fill: 'white'};
-
-    const startBtn = this.add.text(this.world.centerX, this.world.centerY, 'Start', optionStyle);
-    startBtn.inputEnabled = true;
-    startBtn.anchor.x = 0.5;
-    startBtn.anchor.y = 0.5;
-    startBtn.events.onInputUp.add(() => { 
+    utils.addMenuItem(20, "Start", 0, this, () => {
       this.state.start('Game');
-    });
-    startBtn.events.onInputOver.add(function (target) {
-            target.fill = "#EEEEDD";
-    });
-    startBtn.events.onInputOut.add(function (target) {
-            target.fill = "white";
     });
   }
 }

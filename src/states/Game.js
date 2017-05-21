@@ -1,16 +1,21 @@
 /* globals __DEV__ */
 import Phaser from 'phaser'
-import { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece }  from '../objects/Piece'
+import { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece, rotatePiece }  from '../objects/Piece'
 import utils from '../utils'
 
-const LWIDTH = 20;
-const LHEIGHT = 10;
-const COOLDOWN = 3;
-const START_RATE = 500;
+const LWIDTH = 12;
+const LHEIGHT = 14;
+
+const COOLDOWN = 7;
+const START_RATE = 1000;
+
+// 0xeee8d5
+const LINE_COLOR = 0xe5e3e0;
+const PIECE_COLORS = [0xb58900, 0xcb4b16, 0xdc322f, 0xd33682, 0x6c71c4, 0x268bd2, 0x859900];
 
 const generateBaseTexture = (dims, graphics) => {
   // bars
-  graphics.lineStyle(1, 0x303000);
+  graphics.lineStyle(1, LINE_COLOR);
   for (let i = 0; i < dims.L_WIDTH; i++) {
     graphics.beginFill();
     graphics.moveTo(dims.CENTER_X, dims.CENTER_Y);
@@ -26,9 +31,6 @@ const generateBaseTexture = (dims, graphics) => {
     graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, radius*2)
   }
   graphics.endFill();
-  // "sun"
-  graphics.beginFill(0xFFFFDD);
-  graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, 4);
 
   const tex = graphics.generateTexture()
   graphics.destroy();
@@ -36,16 +38,8 @@ const generateBaseTexture = (dims, graphics) => {
 }
 
 const spawnTetromino = (max, lco) => {
-  const r = utils.rand(255);
-  const g = utils.rand(255);
-  let b;
-  if (r < 100 || g < 100) {
-    b = utils.rand(155) + 100;
-  } else {
-    b = utils.rand(50);
-  }
-
   let points;
+  let canRotate = true;
 
   switch (utils.rand(7)) {
     case 0: // I
@@ -67,6 +61,7 @@ const spawnTetromino = (max, lco) => {
       points = [{x: lco.x+1, y: lco.y},
                 {x: lco.x, y: lco.y+1},
                 {x: lco.x+1, y: lco.y+1}];
+      canRotate = false;
       break;
     case 4: // S 
       points = [{x: lco.x-1, y: lco.y},
@@ -87,7 +82,7 @@ const spawnTetromino = (max, lco) => {
 
   points.push(lco);
 
-  return createPiece(points, max, Phaser.Color.getColor(r, g, b));;
+  return createPiece(points, max, PIECE_COLORS[utils.rand(PIECE_COLORS.length)], canRotate ? lco : null);
 }
 
 const isLanded = (piece, landPiece) => {
@@ -103,29 +98,6 @@ const isLanded = (piece, landPiece) => {
   }
 
   return false;
-}
-
-const breakLand = (landPiece, dims) => {
-  let drop = 0;
-  const points = [];
-
-  for (let y = 0; y <= dims.L_HEIGHT; y++) {
-    if (landPiece.rowIsEmpty(y)) {
-      break;
-    }
-
-    if (landPiece.rowHasEnough(y, dims.L_WIDTH)) {
-      drop += 1;
-    } else { // paste row into the new landPiece
-      for (let x = 0; x < dims.L_WIDTH; x++) {
-        if (landPiece.contains({x: x, y: y})) {
-          points.push({x: x, y: y-drop});
-        }
-      }
-    }
-  }
-
-  return createPiece(points, dims.L_WIDTH);
 }
 
 export default class extends Phaser.State {
@@ -144,6 +116,8 @@ export default class extends Phaser.State {
     this.pieces = [];
     this.landPiece = createPiece([], this.dimensions.L_WIDTH);
     this.released = true;
+    this.score = 0;
+    this.gameOver = false;
 
     const background = this.game.add.sprite(this.world.centerX, this.world.centerY, generateBaseTexture(this.dimensions, this.game.add.graphics()));
     background.anchor.set(0.5);
@@ -162,8 +136,46 @@ export default class extends Phaser.State {
     drawPiece(this.landPiece, this.dimensions, this.lGraphics);
   }
 
+  checkClears () {
+    const breakLand = (landPiece, dims) => {
+      let drop = 0;
+      const points = [];
+
+      for (let y = 0; y <= dims.L_HEIGHT; y++) {
+        if (landPiece.rowIsEmpty(y)) {
+          break;
+        }
+
+        if (landPiece.rowHasEnough(y, dims.L_WIDTH)) {
+          drop += 1;
+        } else { // paste row into the new landPiece
+          for (let x = 0; x < dims.L_WIDTH; x++) {
+            if (landPiece.contains({x: x, y: y})) {
+              points.push({x: x, y: y-drop});
+            }
+          }
+        }
+      }
+
+      const newPiece = drop > 0 ? createPiece(points, dims.L_WIDTH) : null;
+
+      return {piece: newPiece, score: drop};
+    }
+
+    const results = breakLand(this.landPiece, this.dimensions);
+
+    if (results.score > 0) {
+      this.landPiece = results.piece;
+      this.score += results.score;
+      const newDelay = this.tickEvent.delay * Math.pow(0.8, results.score);
+      this.tickEvent.delay = newDelay;
+    }
+  }
+
   tick () {
-    if (this.generateCooldown < 0 && utils.rand(2) === 0)  {
+    // never a dull moment
+    if ((this.generateCooldown < 0 && utils.rand(2) === 0) 
+          || this.pieces.length === 0)  {
       this.pieces.push(spawnTetromino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
       this.generateCooldown = COOLDOWN;
     } else {
@@ -185,12 +197,11 @@ export default class extends Phaser.State {
     // update to new piece state
     this.pieces = newPieces;
 
-    this.landPiece = breakLand(this.landPiece, this.dimensions);
+    this.checkClears();
+    this.reDraw();
 
     if (this.isLoser()) {
-      this.state.start('Menu');
-    } else {
-      this.reDraw();
+      this.endGame();
     }
   }
 
@@ -205,7 +216,21 @@ export default class extends Phaser.State {
     this.tickEvent = this.game.time.events.loop(START_RATE, this.tick, this);
   }
 
+  endGame () {
+    game.time.events.remove(this.tickEvent);
+    this.gameOver = true;
+
+    utils.addMenuItem(30, "Score: " + this.score, -100, this);
+    utils.addMenuItem(20, "Restart", 0, this, () => {
+      this.state.start('Game');
+    });
+  }
+
   update () {
+    if (this.gameOver) {
+      return;
+    }
+
     const shiftLandPiece = (shift) => {
       // check for any collisions with new land
       let foundCollision = true;
@@ -218,19 +243,8 @@ export default class extends Phaser.State {
         foundCollision = false;
         
         this.pieces.forEach((piece) => {
-          let pieceCollides = false;
-          const points = piece.getPoints();
-
-          // check if piece collides with the landPiece
-          for (let i = 0; i < points.length; i++) {
-            if (newLand.contains(points[i])) {
-              pieceCollides = true;
-              break;
-            }
-          }
-
           // either merge or keep the piece as is
-          if (pieceCollides) {
+          if (isLanded(piece, newLand)) {
             foundCollision = true;
             this.landPiece = mergePieces(this.landPiece, piece);
           } else {
@@ -242,12 +256,29 @@ export default class extends Phaser.State {
       }
 
       this.landPiece = newLand;
-      this.landPiece = breakLand(this.landPiece, this.dimensions);
+      this.checkClears();
+      this.reDraw();
+
       if (this.isLoser()) {
-        this.state.start('Menu');
-      } else {
-        this.reDraw();
+        this.endGame();
       }
+    }
+
+    const rotatePieces = () => {
+      const newPieces = [];
+
+      this.pieces.forEach((piece) => {
+        const rp = rotatePiece(piece);
+
+        if (!isLanded(rp, this.landPiece)) {
+          newPieces.push(rp);
+        } else {
+          newPieces.push(piece);
+        }
+      });
+
+      this.pieces = newPieces;
+      this.reDraw();
     }
 
     if (this.game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
@@ -265,6 +296,11 @@ export default class extends Phaser.State {
     } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.DOWN)) {
       if (this.released) {
         this.tick();
+        this.released = false;
+      }
+    } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.UP)) {
+      if (this.released) {
+        rotatePieces();
         this.released = false;
       }
     } else {
