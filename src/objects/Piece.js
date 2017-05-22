@@ -1,6 +1,5 @@
 import utils from '../utils'
-
-const DEFAULT_COLOR = 0x657b83;
+import config from '../config'
 
 const mod = (n, m) => {
   return ((n % m) + m) % m;
@@ -93,7 +92,7 @@ const drawPiece = (piece, dims, graphics) => {
     // get screen positions
     const sco = utils.getScreenCoordinates(dims, element);
 
-    graphics.lineStyle(2, piece.color);
+    graphics.lineStyle(1, piece.color);
     
     // draw radial line to next point
     if (element.y < dims.L_HEIGHT && piece.contains({x: element.x, y: element.y+1})) {
@@ -104,20 +103,19 @@ const drawPiece = (piece, dims, graphics) => {
       graphics.endFill();
     }
     // draw arc to next point
-    const r = utils.getScreenRadius(dims, element.y);
-    const a = utils.getScreenAngle(dims, element);
+    const r = dims.SEC_RADII[element.y];
+    const a = dims.SEC_ANGLES[element.x];
     const testX = mod(element.x+1,piece.MAX_X);
     if (piece.contains({x: testX, y: element.y})) {
-      graphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, a+dims.SEC_ANGLE, false);
+      graphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, dims.SEC_ANGLES[testX], false);
     }
 
     // draw point
     graphics.lineStyle(0);
-    // get size of circle, higher is smaller
-    const size = 12 - element.y;
 
     graphics.beginFill(piece.color);
-    graphics.drawCircle(sco.x, sco.y, size);
+    // dot radius should fill 1/3 of the inner section it takes...
+    graphics.drawCircle(sco.x, sco.y, (dims.SEC_SIZES[element.y]/3)*2);
     graphics.endFill();
   });
 }
@@ -144,7 +142,7 @@ const createPiece = (points, max, color, root) => {
     p.mask[real.y][real.x] = true;
   });
   
-  p.color = color || DEFAULT_COLOR;
+  p.color = color || config.DEFAULT_PIECE_COLOR;
   p.MAX_X = max;
 
   return p;

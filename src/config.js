@@ -1,5 +1,11 @@
 export default {
-  gameWidth: 800,
-  gameHeight: 800,
-  localStorageName: 'phaseres6webpack'
+  DEFAULT_PIECE_COLOR: 0x657b83,
+  BACKGROUND_COLOR: '#f9f6f2',
+  LWIDTH: 12,
+  LHEIGHT: 16,
+  START_RATE: 1000,
+  LINE_COLOR: 0xe5e3e0,
+  PIECE_COLORS: [0xb58900, 0xcb4b16, 0xdc322f, 0xd33682, 0x6c71c4, 0x268bd2, 0x859900],
+  MENU_ITEM_COLOR: '#000000',
+  MENU_ITEM_HOVER_COLOR: '#073642'
 }

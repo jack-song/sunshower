@@ -2,20 +2,11 @@
 import Phaser from 'phaser'
 import { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece, rotatePiece }  from '../objects/Piece'
 import utils from '../utils'
-
-const LWIDTH = 12;
-const LHEIGHT = 14;
-
-const COOLDOWN = 7;
-const START_RATE = 1000;
-
-// 0xeee8d5
-const LINE_COLOR = 0xe5e3e0;
-const PIECE_COLORS = [0xb58900, 0xcb4b16, 0xdc322f, 0xd33682, 0x6c71c4, 0x268bd2, 0x859900];
+import config from '../config'
 
 const generateBaseTexture = (dims, graphics) => {
   // bars
-  graphics.lineStyle(1, LINE_COLOR);
+  graphics.lineStyle(1, config.LINE_COLOR);
   for (let i = 0; i < dims.L_WIDTH; i++) {
     graphics.beginFill();
     graphics.moveTo(dims.CENTER_X, dims.CENTER_Y);
@@ -27,8 +18,8 @@ const generateBaseTexture = (dims, graphics) => {
   graphics.moveTo(0, 0);
   graphics.beginFill(0, 0);
   for (let i = 0; i < dims.L_HEIGHT; i++) {
-    const radius = utils.getScreenRadius(dims, i);
-    graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, radius*2)
+    const radius = dims.SEC_RADII[i];
+    graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, radius*2);
   }
   graphics.endFill();
 
@@ -82,7 +73,7 @@ const spawnTetromino = (max, lco) => {
 
   points.push(lco);
 
-  return createPiece(points, max, PIECE_COLORS[utils.rand(PIECE_COLORS.length)], canRotate ? lco : null);
+  return createPiece(points, max, config.PIECE_COLORS[utils.rand(config.PIECE_COLORS.length)], canRotate ? lco : null);
 }
 
 const isLanded = (piece, landPiece) => {
@@ -102,14 +93,47 @@ const isLanded = (piece, landPiece) => {
 
 export default class extends Phaser.State {
   init () {
+
+    // calculate section sizes
+    // map diameter, margin of 5% per side
+    const radius = (this.game.width*.9)/2;
+
+    // treat final total radius as area under section curve:
+    // (outerSectionSize * # of sections) / 2 = total radius
+    const outerSectionSize = (radius*2)/config.LHEIGHT;
+    const slope = outerSectionSize/config.LHEIGHT;
+
+    // array from logical y to the contained section size
+    const sections = [];
+    for (let y = config.LHEIGHT; y > 0; y--) {
+      // -0.5 to account for integral approx. error
+      sections.push((y-0.5)*slope);
+    }
+    sections.push(0);
+
+    // array from the logical y to the real radius
+    const radii = [];
+    let currRadius = radius;
+    for (let y = 0; y < sections.length; y++) {
+      radii.push(currRadius);
+      currRadius -= sections[y];
+    }
+
+    // array from the logical x to the polar angle
+    const angles = [];
+    const sectionAngle = 2*Math.PI/config.LWIDTH;
+    for (let x = 0; x < config.LWIDTH; x++) {
+      angles.push(x*sectionAngle);
+    }
+
     this.dimensions = {
       G_HEIGHT: this.game.height,
       G_WIDTH: this.game.width,
-      L_HEIGHT: LHEIGHT,
-      L_WIDTH: LWIDTH,
-      SEC_ANGLE: 2*Math.PI/LWIDTH,
-      // piece of radius, add one as visual buffer
-      SEC_SIZE: (this.game.height/2)/(LHEIGHT+1),
+      L_HEIGHT: config.LHEIGHT,
+      L_WIDTH: config.LWIDTH,
+      SEC_SIZES: sections,
+      SEC_RADII: radii,
+      SEC_ANGLES: angles,
       CENTER_X: this.world.centerX,
       CENTER_Y: this.world.centerY
     };
@@ -123,7 +147,6 @@ export default class extends Phaser.State {
     background.anchor.set(0.5);
     this.pGraphics = this.game.add.graphics();
     this.lGraphics = this.game.add.graphics();
-    this.generateCooldown = -1;
   }
 
   reDraw () {
@@ -174,12 +197,8 @@ export default class extends Phaser.State {
 
   tick () {
     // never a dull moment
-    if ((this.generateCooldown < 0 && utils.rand(2) === 0) 
-          || this.pieces.length === 0)  {
+    if (this.pieces.length === 0)  {
       this.pieces.push(spawnTetromino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
-      this.generateCooldown = COOLDOWN;
-    } else {
-      this.generateCooldown -= 1;
     }
 
     const newPieces = [];
@@ -213,7 +232,7 @@ export default class extends Phaser.State {
   }
 
   create () {
-    this.tickEvent = this.game.time.events.loop(START_RATE, this.tick, this);
+    this.tickEvent = this.game.time.events.loop(config.START_RATE, this.tick, this);
   }
 
   endGame () {
