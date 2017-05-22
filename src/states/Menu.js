@@ -13,8 +13,8 @@ export default class extends Phaser.State {
     });
 
     utils.addMenuItem(10, `Fill a circle of dots to clear them.\n
-      UP to turn falling pieces.\n
-      DOWN to speed them up.\n
-      LEFT RIGHT to move settled pieces.`, 100, this);
+UP to turn falling pieces.\n
+DOWN to speed them up.\n
+LEFT RIGHT to move settled pieces.`, 100, this);
   }
 }
