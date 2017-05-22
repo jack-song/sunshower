@@ -1,16 +1,12 @@
 import utils from '../utils'
 import config from '../config'
 
-const mod = (n, m) => {
-  return ((n % m) + m) % m;
-}
-
 const PIECE_PROTOTYPE = {
   contains(lco) {
     if (!this.mask[lco.y]) {
       return false;
     }
-    return this.mask[lco.y][lco.x];
+    return this.mask[lco.y][utils.mod(lco.x, this.MAX_X)];
   },
   getPoints() {
     return this.points;
@@ -69,7 +65,6 @@ const rotatePiece = (piece) => {
   }
 
   const points = [];
-
   piece.getPoints().forEach((point) => {
     const dx = point.x - piece.root.x;
     const dy = point.y - piece.root.y;
@@ -77,47 +72,6 @@ const rotatePiece = (piece) => {
   });
 
   return createPiece(points, piece.MAX_X, piece.color, piece.root);
-}
-
-const drawPiece = (piece, dims, graphics) => {
-  if (piece.isEmpty()) {
-    return;
-  }
-
-  // draw conections
-  piece.points.forEach((element, index) => {
-    if (element.y > dims.L_HEIGHT) {
-      return;
-    }
-    // get screen positions
-    const sco = utils.getScreenCoordinates(dims, element);
-
-    graphics.lineStyle(1, piece.color);
-    
-    // draw radial line to next point
-    if (element.y < dims.L_HEIGHT && piece.contains({x: element.x, y: element.y+1})) {
-      graphics.beginFill();
-      graphics.moveTo(sco.x, sco.y);
-      const end = utils.getScreenCoordinates(dims, {x: element.x, y: element.y+1});
-      graphics.lineTo(end.x, end.y);
-      graphics.endFill();
-    }
-    // draw arc to next point
-    const r = dims.SEC_RADII[element.y];
-    const a = dims.SEC_ANGLES[element.x];
-    const testX = mod(element.x+1,piece.MAX_X);
-    if (piece.contains({x: testX, y: element.y})) {
-      graphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, dims.SEC_ANGLES[testX], false);
-    }
-
-    // draw point
-    graphics.lineStyle(0);
-
-    graphics.beginFill(piece.color);
-    // dot radius should fill 1/3 of the inner section it takes...
-    graphics.drawCircle(sco.x, sco.y, (dims.SEC_SIZES[element.y]/3)*2);
-    graphics.endFill();
-  });
 }
 
 const createPiece = (points, max, color, root) => {
@@ -130,16 +84,14 @@ const createPiece = (points, max, color, root) => {
   p.root = root;
 
   points.forEach((point) => {
-    // correct for x limits
-    const real = {x: mod(point.x, max), y: point.y};
-
-    p.points.push(real);
+    p.points.push(point);
 
     // create new column if needed
-    if(!p.mask[real.y]) {
-      p.mask[real.y] = {};
+    if(!p.mask[point.y]) {
+      p.mask[point.y] = {};
     }
-    p.mask[real.y][real.x] = true;
+    // mask must be correct for x limits
+    p.mask[point.y][utils.mod(point.x, max)] = true;
   });
   
   p.color = color || config.DEFAULT_PIECE_COLOR;
@@ -162,4 +114,4 @@ const mergePieces = (first, second) => {
   return createPiece(points, first.MAX_X, first.color, first.root);
 }
 
-export { createPiece, drawPiece, dropPiece, mergePieces, shiftPiece, rotatePiece }
+export { createPiece, dropPiece, mergePieces, shiftPiece, rotatePiece }

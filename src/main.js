@@ -8,7 +8,8 @@ import GameState from './states/Game'
 class Game extends Phaser.Game {
   constructor () {
     const docElement = document.documentElement
-    const size = Math.min(docElement.clientWidth, docElement.clientHeight);
+    // 20 is a fudge factor to prevent weird scroll stuff
+    const size = Math.min(docElement.clientWidth, docElement.clientHeight-20);
 
     super(size, size, Phaser.CANVAS, 'content', null)
 
