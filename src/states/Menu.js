@@ -12,6 +12,9 @@ export default class extends Phaser.State {
       this.state.start('Game');
     });
 
-    utils.addMenuItem(10, "Fill a circle of dots to clear them.\nUP to turn falling pieces.\nDOWN to speed them up.", 100, this);
+    utils.addMenuItem(10, `Fill a circle of dots to clear them.\n
+      UP to turn falling pieces.\n
+      DOWN to speed them up.\n
+      LEFT RIGHT to move settled pieces.`, 100, this);
   }
 }
