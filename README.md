@@ -11,14 +11,11 @@ Made with phaser, https://github.com/lean/phaser-es6-webpack.
 - google analytics
 - ship
 
-- less drawing to improve CPU
-- less memory usage
-
-- font backup
 - tweened animations
+- less memory usage
+- keep piece colors
+- touch controls
 
-- instructions screen
 - sound
 - other game modes
-- physics animations
-- combos/color matching?
+- pretty animations

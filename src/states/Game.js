@@ -19,6 +19,9 @@ const generateBaseTexture = (dims, graphics) => {
   graphics.beginFill(0, 0);
   for (let i = 0; i < dims.L_HEIGHT; i++) {
     const radius = dims.SEC_RADII[i];
+    // alternate styles for better depth perception
+    graphics.lineStyle(1, i%2===0 ? config.LINE_COLOR : config.OTHER_LINE_COLOR);
+    
     graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, radius*2);
   }
   graphics.endFill();
