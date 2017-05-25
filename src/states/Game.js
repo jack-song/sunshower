@@ -129,6 +129,7 @@ const spawnTetromino = (max, lco) => {
 
 const spawnTrimino = (max, lco) => {
   let points;
+  let canRotate = true;
 
   lco.color = config.ACCENT_COLORS[utils.rand(config.ACCENT_COLORS.length)];
 
@@ -145,6 +146,11 @@ const spawnTrimino = (max, lco) => {
       points = [{x: lco.x-1, y: lco.y, color: lco.color},
                 {x: lco.x, y: lco.y+1, color: lco.color}];
       break;
+    case 3: // O
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x, y: lco.y+1, color: lco.color},
+                {x: lco.x+1, y: lco.y+1, color: lco.color}];
+      canRotate = false;
     default: // :
       points = [{x: lco.x, y: lco.y+1, color: lco.color}];
       break;
@@ -152,7 +158,7 @@ const spawnTrimino = (max, lco) => {
 
   points.push(lco);
 
-  return createPiece(points, max, lco.color, lco);
+  return createPiece(points, max, lco.color, canRotate ? lco : null);
 }
 
 const isLanded = (piece, landPiece) => {
@@ -355,7 +361,8 @@ export default class extends Phaser.State {
   }
 
   create () {
-    this.tickEvent = this.game.time.events.loop(config.START_RATE, this.tick, this);
+    const rate = this.mode === 0 ? config.START_RATE-100 : config.START_RATE;
+    this.tickEvent = this.game.time.events.loop(rate, this.tick, this);
   }
 
   endGame () {

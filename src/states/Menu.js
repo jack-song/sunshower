@@ -22,6 +22,7 @@ UP to turn falling pieces.\n
 DOWN to speed them up.\n
 LEFT RIGHT to move locked pieces.\n
 R to restart.\n
+\n
 v0.5`, 170, this);
   }
 }
