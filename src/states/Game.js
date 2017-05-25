@@ -4,13 +4,13 @@ import { createPiece, dropPiece, mergePieces, shiftPiece, rotatePiece }  from '.
 import utils from '../utils'
 import config from '../config'
 
-const getDefaultColor = (y) => {
-  return y%2===0 ? config.LINE_COLOR : config.OTHER_LINE_COLOR;
+const getRowColor = (y) => {
+  return config.ACCENT_COLORS[(y%config.ACCENT_COLORS.length)];
 }
 
 const generateBaseTexture = (dims, graphics) => {
   // bars
-  graphics.lineStyle(1, config.LINE_COLOR);
+  graphics.lineStyle(1, config.LIGHT_GREY_COLOR);
   for (let i = 0; i < dims.L_WIDTH; i++) {
     graphics.beginFill();
     graphics.moveTo(dims.CENTER_X, dims.CENTER_Y);
@@ -23,8 +23,7 @@ const generateBaseTexture = (dims, graphics) => {
   graphics.beginFill(0, 0);
   for (let i = 0; i < dims.L_HEIGHT; i++) {
     const radius = dims.SEC_RADII[i];
-    // alternate styles for better depth perception
-    graphics.lineStyle(1, getDefaultColor(i));
+    graphics.lineStyle(1, getRowColor(i));
     
     graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, radius*2);
   }
@@ -52,9 +51,9 @@ const drawPiece = (piece, dims, lineGraphics, dotGraphics) => {
 
     let color = piece.color;
     if (!piece.color) {
-      color = getDefaultColor(element.y)-0x222222;
-      dotGraphics.lineStyle(1, config.MENU_ITEM_HOVER_COLOR);
-      lineGraphics.lineStyle(1, config.MENU_ITEM_HOVER_COLOR);
+      color = getRowColor(element.y);
+      dotGraphics.lineStyle(2, config.GREY_COLOR);
+      lineGraphics.lineStyle(2, config.GREY_COLOR);
     } else {
       lineGraphics.lineStyle(2, color);
     }
@@ -129,7 +128,7 @@ const spawnTetromino = (max, lco) => {
 
   points.push(lco);
 
-  return createPiece(points, max, config.PIECE_COLORS[utils.rand(config.PIECE_COLORS.length)], canRotate ? lco : null);
+  return createPiece(points, max, config.GREY_COLOR, canRotate ? lco : null);
 }
 
 const isLanded = (piece, landPiece) => {
@@ -149,7 +148,7 @@ const isLanded = (piece, landPiece) => {
 
 export default class extends Phaser.State {
   init () {
-    const sectionSizeFudgeFactor = 0.5;
+    const sectionSizeFudgeFactor = 0.3;
     // calculate section sizes
     // map radius, margin of 5% per side
     const trueRadius = (this.game.width*.9)/2;
