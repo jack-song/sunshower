@@ -24,6 +24,7 @@ const addMenuItem = (size, content, relativePosition, state, clickFunction) => {
     const item = state.add.text(state.world.centerX, state.world.centerY + relativePosition, content, style);
     item.anchor.x = 0.5;
     item.anchor.y = 0.5;
+    item.lineSpacing = -7;
 
     if (clickFunction) {
       item.inputEnabled = true;

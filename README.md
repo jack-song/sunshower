@@ -4,6 +4,7 @@
 
 - `yarn`
 - `npm run dev`
+- `npm run deploy`
 
 Made with:
 - phaser: https://phaser.io/
@@ -11,10 +12,10 @@ Made with:
 - solarized: http://ethanschoonover.com/solarized
 
 ## Todo
-- tweened animations
-- less memory usage
+- live score update
+- tweened spinning animations
+- less memory usage (drawing)
 - touch controls
 
 - sound
-- other game modes
 - pretty animations

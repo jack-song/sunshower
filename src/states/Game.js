@@ -127,6 +127,34 @@ const spawnTetromino = (max, lco) => {
   return createPiece(points, max, lco.color, canRotate ? lco : null);
 }
 
+const spawnTrimino = (max, lco) => {
+  let points;
+
+  lco.color = config.ACCENT_COLORS[utils.rand(config.ACCENT_COLORS.length)];
+
+  switch (utils.rand(4)) {
+    case 0: // I
+      points = [{x: lco.x, y: lco.y+1, color: lco.color},
+                {x: lco.x, y: lco.y+2, color: lco.color}];
+      break;
+    case 1: // J
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x, y: lco.y+1, color: lco.color}];
+      break;
+    case 2: // L
+      points = [{x: lco.x-1, y: lco.y, color: lco.color},
+                {x: lco.x, y: lco.y+1, color: lco.color}];
+      break;
+    default: // :
+      points = [{x: lco.x, y: lco.y+1, color: lco.color}];
+      break;
+  }
+
+  points.push(lco);
+
+  return createPiece(points, max, lco.color, lco);
+}
+
 const isLanded = (piece, landPiece) => {
   const points = piece.getPoints();
   for(let i = 0; i < points.length; i++) {
@@ -143,7 +171,7 @@ const isLanded = (piece, landPiece) => {
 }
 
 export default class extends Phaser.State {
-  init () {
+  init (mode) {
     const sectionSizeFudgeFactor = 0.2;
     // calculate section sizes
     // map radius, margin of 5% per side
@@ -198,6 +226,7 @@ export default class extends Phaser.State {
     this.released = true;
     this.score = 0;
     this.gameOver = false;
+    this.mode = mode;
 
     const background = this.game.add.sprite(this.world.centerX, this.world.centerY, generateBaseTexture(this.dimensions, this.game.add.graphics()));
     background.anchor.set(0.5);
@@ -205,6 +234,9 @@ export default class extends Phaser.State {
     this.dotGraphics = this.game.add.graphics();
     this.lLineGraphics = this.game.add.graphics();
     this.lDotGraphics = this.game.add.graphics();
+
+    this.cooldown = -1;
+    this.maxCooldown = config.START_COOLDOWN;
   }
 
   reDrawPieces () {
@@ -254,6 +286,13 @@ export default class extends Phaser.State {
       this.score += results.score;
       const newDelay = this.tickEvent.delay * Math.pow(config.DIFFICULTY_RATE, results.score);
       this.tickEvent.delay = newDelay;
+
+      if (this.mode === 0) {
+        if (this.maxCooldown > 1) {
+          this.maxCooldown = config.START_COOLDOWN - Math.floor(this.score/10);
+        }
+      }
+
       return true;
     }
 
@@ -261,10 +300,23 @@ export default class extends Phaser.State {
   }
 
   tick () {
-    // never a dull moment
-    if (this.pieces.length === 0)  {
-      this.pieces.push(spawnTetromino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
+    switch (this.mode) {
+      case 1:
+        if (this.pieces.length === 0)  {
+          this.pieces.push(spawnTetromino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
+        }
+      break;
+
+      default:
+        if (this.cooldown < 0)  {
+          this.pieces.push(spawnTrimino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
+          this.cooldown = this.maxCooldown;
+        } else {
+          this.cooldown--;
+        }
+      break;
     }
+
     let landed = false;
 
     const newPieces = [];
@@ -312,7 +364,7 @@ export default class extends Phaser.State {
 
     utils.addMenuItem(30, ` Score: ${this.score} `, -100, this);
     utils.addMenuItem(20, " Restart ", 0, this, () => {
-      this.state.start('Game');
+      this.state.start('Game', true, false, this.mode);
     });
   }
 
@@ -398,6 +450,10 @@ export default class extends Phaser.State {
       if (this.released) {
         rotatePieces();
         this.released = false;
+      }
+    } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.R)) {
+      if (this.released) {
+        this.state.start('Game', true,  false, this.mode);
       }
     } else {
       this.released = true;
