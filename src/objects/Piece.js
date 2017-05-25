@@ -94,7 +94,7 @@ const createPiece = (points, max, color, root) => {
     p.mask[point.y][utils.mod(point.x, max)] = true;
   });
   
-  p.color = color || config.DEFAULT_PIECE_COLOR;
+  p.color = color || null;
   p.MAX_X = max;
 
   return p;

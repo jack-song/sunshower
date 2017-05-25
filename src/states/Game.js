@@ -4,6 +4,10 @@ import { createPiece, dropPiece, mergePieces, shiftPiece, rotatePiece }  from '.
 import utils from '../utils'
 import config from '../config'
 
+const getDefaultColor = (y) => {
+  return y%2===0 ? config.LINE_COLOR : config.OTHER_LINE_COLOR;
+}
+
 const generateBaseTexture = (dims, graphics) => {
   // bars
   graphics.lineStyle(1, config.LINE_COLOR);
@@ -20,7 +24,7 @@ const generateBaseTexture = (dims, graphics) => {
   for (let i = 0; i < dims.L_HEIGHT; i++) {
     const radius = dims.SEC_RADII[i];
     // alternate styles for better depth perception
-    graphics.lineStyle(1, i%2===0 ? config.LINE_COLOR : config.OTHER_LINE_COLOR);
+    graphics.lineStyle(1, getDefaultColor(i));
     
     graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, radius*2);
   }
@@ -31,10 +35,12 @@ const generateBaseTexture = (dims, graphics) => {
   return tex;
 }
 
-const drawPiece = (piece, dims, graphics) => {
+const drawPiece = (piece, dims, lineGraphics, dotGraphics) => {
   if (piece.isEmpty()) {
     return;
   }
+  
+  dotGraphics.lineStyle(0);
 
   // draw conections
   piece.points.forEach((element, index) => {
@@ -44,30 +50,37 @@ const drawPiece = (piece, dims, graphics) => {
     // get screen positions
     const sco = utils.getScreenCoordinates(dims, element);
 
-    graphics.lineStyle(1, piece.color);
+    let color = piece.color;
+    if (!piece.color) {
+      color = getDefaultColor(element.y)-0x222222;
+      dotGraphics.lineStyle(1, config.MENU_ITEM_HOVER_COLOR);
+      lineGraphics.lineStyle(1, config.MENU_ITEM_HOVER_COLOR);
+    } else {
+      lineGraphics.lineStyle(2, color);
+    }
     
     // draw radial line to next point
     if (element.y < dims.L_HEIGHT && piece.contains({x: element.x, y: element.y+1})) {
-      graphics.beginFill();
-      graphics.moveTo(sco.x, sco.y);
+      lineGraphics.beginFill();
+      lineGraphics.moveTo(sco.x, sco.y);
       const end = utils.getScreenCoordinates(dims, {x: element.x, y: element.y+1});
-      graphics.lineTo(end.x, end.y);
-      graphics.endFill();
+      lineGraphics.lineTo(end.x, end.y);
+      lineGraphics.endFill();
     }
 
     // draw arc to next point
     const r = dims.SEC_RADII[element.y];
     const a = dims.SEC_ANGLES[utils.mod(element.x, dims.L_WIDTH)];
     if (piece.contains({x: element.x+1, y: element.y})) {
-      graphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, a+dims.SEC_ANGLE, false);
+      lineGraphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, a+dims.SEC_ANGLE, false);
     }
 
     // draw point
-    graphics.lineStyle(0);
-    graphics.beginFill(piece.color);
+    dotGraphics.beginFill(color);
     // dot radius should fill 1/3 of the inner section it takes...
-    graphics.drawCircle(sco.x, sco.y, (dims.SEC_SIZES[element.y]/3)*2);
-    graphics.endFill();
+    const size = element.y < dims.L_HEIGHT ? (dims.SEC_SIZES[element.y]/3)*2 : (dims.SEC_SIZES[element.y-1]/3)*2;
+    dotGraphics.drawCircle(sco.x, sco.y, size);
+    dotGraphics.endFill();
   });
 }
 
@@ -136,27 +149,31 @@ const isLanded = (piece, landPiece) => {
 
 export default class extends Phaser.State {
   init () {
-
+    const sectionSizeFudgeFactor = 0.5;
     // calculate section sizes
-    // map diameter, margin of 5% per side
-    const radius = (this.game.width*.9)/2;
+    // map radius, margin of 5% per side
+    const trueRadius = (this.game.width*.9)/2;
+    // save another 10% for fudging the center sections to be a bit larger
+    const radiusFudge = trueRadius*sectionSizeFudgeFactor;
+    const workingRadius = trueRadius-radiusFudge;
+    const sectionFudge = radiusFudge/config.LHEIGHT;
 
     // treat final total radius as area under section curve:
     // (outerSectionSize * # of sections) / 2 = total radius
-    const outerSectionSize = (radius*2)/config.LHEIGHT;
+    const outerSectionSize = (workingRadius*2)/config.LHEIGHT;
     const slope = outerSectionSize/config.LHEIGHT;
 
     // array from logical y to the contained section size
     const sections = [];
     for (let y = config.LHEIGHT; y > 0; y--) {
       // -0.5 to account for integral approx. error
-      sections.push((y-0.5)*slope);
+      sections.push((y-0.5)*slope + sectionFudge);
     }
     sections.push(0);
 
     // array from the logical y to the real radius
     const radii = [];
-    let currRadius = radius;
+    let currRadius = trueRadius;
     for (let y = 0; y < sections.length; y++) {
       radii.push(currRadius);
       currRadius -= sections[y];
@@ -189,20 +206,24 @@ export default class extends Phaser.State {
 
     const background = this.game.add.sprite(this.world.centerX, this.world.centerY, generateBaseTexture(this.dimensions, this.game.add.graphics()));
     background.anchor.set(0.5);
-    this.pGraphics = this.game.add.graphics();
-    this.lGraphics = this.game.add.graphics();
+    this.lineGraphics = this.game.add.graphics();
+    this.dotGraphics = this.game.add.graphics();
+    this.lLineGraphics = this.game.add.graphics();
+    this.lDotGraphics = this.game.add.graphics();
   }
 
   reDrawPieces () {
-    this.pGraphics.clear();
+    this.lineGraphics.clear();
+    this.dotGraphics.clear();
     this.pieces.forEach((piece) => {
-      drawPiece(piece, this.dimensions, this.pGraphics);
+      drawPiece(piece, this.dimensions, this.lineGraphics, this.dotGraphics);
     });
   }
 
   reDrawLand() {
-    this.lGraphics.clear();
-    drawPiece(this.landPiece, this.dimensions, this.lGraphics);
+    this.lLineGraphics.clear();
+    this.lDotGraphics.clear();
+    drawPiece(this.landPiece, this.dimensions, this.lLineGraphics, this.lDotGraphics);
   }
 
   checkClears () {
