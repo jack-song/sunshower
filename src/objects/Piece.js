@@ -2,11 +2,11 @@ import utils from '../utils'
 import config from '../config'
 
 const PIECE_PROTOTYPE = {
-  contains(lco) {
-    if (!this.mask[lco.y]) {
+  contains(x, y) {
+    if (!this.mask[y]) {
       return false;
     }
-    return this.mask[lco.y][utils.mod(lco.x, this.MAX_X)];
+    return this.mask[y][utils.mod(x, this.MAX_X)];
   },
   getPoints() {
     return this.points;
@@ -25,6 +25,9 @@ const PIECE_PROTOTYPE = {
       return false;
     }
     return Object.keys(this.mask[row]).length >= length;
+  },
+  getColor(x, y) {
+    return this.mask[y][x];
   }
 };
 
@@ -32,7 +35,7 @@ const dropPiece = (piece) => {
   const points = [];
 
   piece.points.forEach((element, index) => {
-    points.push({x: element.x, y: element.y-1});
+    points.push({x: element.x, y: element.y-1, color: element.color});
   });
 
   let root = null;
@@ -47,7 +50,7 @@ const shiftPiece = (piece, distance) => {
   const points = [];
 
   piece.points.forEach((element, index) => {
-    points.push({x: element.x+distance, y: element.y});
+    points.push({x: element.x+distance, y: element.y, color: element.color});
   });
 
   let root = null;
@@ -68,7 +71,7 @@ const rotatePiece = (piece) => {
   piece.getPoints().forEach((point) => {
     const dx = point.x - piece.root.x;
     const dy = point.y - piece.root.y;
-    points.push({x: piece.root.x + dy, y: piece.root.y - dx});
+    points.push({x: piece.root.x + dy, y: piece.root.y - dx, color: point.color});
   });
 
   return createPiece(points, piece.MAX_X, piece.color, piece.root);
@@ -91,7 +94,7 @@ const createPiece = (points, max, color, root) => {
       p.mask[point.y] = {};
     }
     // mask must be correct for x limits
-    p.mask[point.y][utils.mod(point.x, max)] = true;
+    p.mask[point.y][utils.mod(point.x, max)] = point.color;
   });
   
   p.color = color || null;
@@ -104,11 +107,11 @@ const mergePieces = (first, second) => {
   const points = [];
 
   first.points.forEach((element) => {
-    points.push({x: element.x, y: element.y});
+    points.push({x: element.x, y: element.y, color: element.color});
   });
 
   second.points.forEach((element) => {
-    points.push({x: element.x, y: element.y});
+    points.push({x: element.x, y: element.y, color: element.color});
   });
 
   return createPiece(points, first.MAX_X, first.color, first.root);

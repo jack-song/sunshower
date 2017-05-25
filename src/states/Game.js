@@ -5,7 +5,7 @@ import utils from '../utils'
 import config from '../config'
 
 const getRowColor = (y) => {
-  return config.ACCENT_COLORS[(y%config.ACCENT_COLORS.length)];
+  return y%2 === 0 ? config.GREY_COLOR : config.LIGHT_GREY_COLOR;
 }
 
 const generateBaseTexture = (dims, graphics) => {
@@ -49,17 +49,11 @@ const drawPiece = (piece, dims, lineGraphics, dotGraphics) => {
     // get screen positions
     const sco = utils.getScreenCoordinates(dims, element);
 
-    let color = piece.color;
-    if (!piece.color) {
-      color = getRowColor(element.y);
-      dotGraphics.lineStyle(2, config.GREY_COLOR);
-      lineGraphics.lineStyle(2, config.GREY_COLOR);
-    } else {
-      lineGraphics.lineStyle(2, color);
-    }
+    dotGraphics.lineStyle(2, piece.color);
+    lineGraphics.lineStyle(2, piece.color);
     
     // draw radial line to next point
-    if (element.y < dims.L_HEIGHT && piece.contains({x: element.x, y: element.y+1})) {
+    if (element.y < dims.L_HEIGHT && piece.contains(element.x, element.y+1)) {
       lineGraphics.beginFill();
       lineGraphics.moveTo(sco.x, sco.y);
       const end = utils.getScreenCoordinates(dims, {x: element.x, y: element.y+1});
@@ -70,12 +64,12 @@ const drawPiece = (piece, dims, lineGraphics, dotGraphics) => {
     // draw arc to next point
     const r = dims.SEC_RADII[element.y];
     const a = dims.SEC_ANGLES[utils.mod(element.x, dims.L_WIDTH)];
-    if (piece.contains({x: element.x+1, y: element.y})) {
+    if (piece.contains(element.x+1, element.y)) {
       lineGraphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, a+dims.SEC_ANGLE, false);
     }
 
     // draw point
-    dotGraphics.beginFill(color);
+    dotGraphics.beginFill(element.color);
     // dot radius should fill 1/3 of the inner section it takes...
     const size = element.y < dims.L_HEIGHT ? (dims.SEC_SIZES[element.y]/3)*2 : (dims.SEC_SIZES[element.y-1]/3)*2;
     dotGraphics.drawCircle(sco.x, sco.y, size);
@@ -87,48 +81,50 @@ const spawnTetromino = (max, lco) => {
   let points;
   let canRotate = true;
 
+  lco.color = config.ACCENT_COLORS[utils.rand(config.ACCENT_COLORS.length)];
+
   switch (utils.rand(7)) {
     case 0: // I
-      points = [{x: lco.x+1, y: lco.y},
-                {x: lco.x+2, y: lco.y},
-                {x: lco.x-1, y: lco.y}];
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x+2, y: lco.y, color: lco.color},
+                {x: lco.x-1, y: lco.y, color: lco.color}];
       break;
     case 1: // J
-      points = [{x: lco.x+1, y: lco.y},
-                {x: lco.x-1, y: lco.y},
-                {x: lco.x-1, y: lco.y+1}];
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x-1, y: lco.y, color: lco.color},
+                {x: lco.x-1, y: lco.y+1, color: lco.color}];
       break;
     case 2: // L
-      points = [{x: lco.x+1, y: lco.y},
-                {x: lco.x-1, y: lco.y},
-                {x: lco.x+1, y: lco.y+1}];
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x-1, y: lco.y, color: lco.color},
+                {x: lco.x+1, y: lco.y+1, color: lco.color}];
       break;
     case 3: // O
-      points = [{x: lco.x+1, y: lco.y},
-                {x: lco.x, y: lco.y+1},
-                {x: lco.x+1, y: lco.y+1}];
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x, y: lco.y+1, color: lco.color},
+                {x: lco.x+1, y: lco.y+1, color: lco.color}];
       canRotate = false;
       break;
     case 4: // S 
-      points = [{x: lco.x-1, y: lco.y},
-                {x: lco.x, y: lco.y+1},
-                {x: lco.x+1, y: lco.y+1}];
+      points = [{x: lco.x-1, y: lco.y, color: lco.color},
+                {x: lco.x, y: lco.y+1, color: lco.color},
+                {x: lco.x+1, y: lco.y+1, color: lco.color}];
       break;
     case 5: // T
-      points = [{x: lco.x+1, y: lco.y},
-                {x: lco.x-1, y: lco.y},
-                {x: lco.x, y: lco.y+1}];
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x-1, y: lco.y, color: lco.color},
+                {x: lco.x, y: lco.y+1, color: lco.color}];
       break;
     default: // Z
-      points = [{x: lco.x+1, y: lco.y},
-                {x: lco.x, y: lco.y+1},
-                {x: lco.x-1, y: lco.y+1}];
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x, y: lco.y+1, color: lco.color},
+                {x: lco.x-1, y: lco.y+1, color: lco.color}];
       break;
   }
 
   points.push(lco);
 
-  return createPiece(points, max, config.GREY_COLOR, canRotate ? lco : null);
+  return createPiece(points, max, lco.color, canRotate ? lco : null);
 }
 
 const isLanded = (piece, landPiece) => {
@@ -138,7 +134,7 @@ const isLanded = (piece, landPiece) => {
       return true;
     }
 
-    if (landPiece.contains(points[i])) {
+    if (landPiece.contains(points[i].x, points[i].y)) {
       return true;
     }
   }
@@ -148,7 +144,7 @@ const isLanded = (piece, landPiece) => {
 
 export default class extends Phaser.State {
   init () {
-    const sectionSizeFudgeFactor = 0.3;
+    const sectionSizeFudgeFactor = 0.2;
     // calculate section sizes
     // map radius, margin of 5% per side
     const trueRadius = (this.game.width*.9)/2;
@@ -198,7 +194,7 @@ export default class extends Phaser.State {
       CENTER_Y: this.world.centerY
     };
     this.pieces = [];
-    this.landPiece = createPiece([], this.dimensions.L_WIDTH);
+    this.landPiece = createPiece([], this.dimensions.L_WIDTH, config.DARK_GREY_COLOR);
     this.released = true;
     this.score = 0;
     this.gameOver = false;
@@ -239,8 +235,8 @@ export default class extends Phaser.State {
           drop += 1;
         } else { // paste row into the new landPiece
           for (let x = 0; x < dims.L_WIDTH; x++) {
-            if (landPiece.contains({x: x, y: y})) {
-              points.push({x: x, y: y-drop});
+            if (landPiece.contains(x, y)) {
+              points.push({x: x, y: y-drop, color: landPiece.getColor(x, y)});
             }
           }
         }
