@@ -6,11 +6,11 @@ import config from '../config'
 export default class extends Phaser.State {
   create () {
     this.stage.backgroundColor = config.BACKGROUND_COLOR;
-    utils.addMenuItem(30, "It's Like Tetris 0.3", -100, this);
+    utils.addMenuItem(30, "It's Like Tetris 0.4", -100, this);
 
     utils.addMenuItem(20, "Start", 0, this, () => {
       this.state.start('Game');
-    });
+    })
 
     utils.addMenuItem(10, `Fill a circle of dots to clear them.\n
 UP to turn falling pieces.\n
