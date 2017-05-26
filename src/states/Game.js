@@ -13,7 +13,7 @@ const generateBaseTexture = (dims, graphics) => {
   graphics.lineStyle(1, config.LIGHT_GREY_COLOR);
   for (let i = 0; i < dims.L_WIDTH; i++) {
     graphics.beginFill();
-    graphics.moveTo(dims.CENTER_X, dims.CENTER_Y);
+    graphics.moveTo(0, 0);
     const end = utils.getScreenCoordinates(dims, {x: i, y: 0});
     graphics.lineTo(end.x, end.y);
     graphics.endFill();
@@ -25,7 +25,7 @@ const generateBaseTexture = (dims, graphics) => {
     const radius = dims.SEC_RADII[i];
     graphics.lineStyle(1, getRowColor(i));
     
-    graphics.drawCircle(dims.CENTER_X, dims.CENTER_Y, radius*2);
+    graphics.drawCircle(0, 0, radius*2);
   }
   graphics.endFill();
 
@@ -34,12 +34,12 @@ const generateBaseTexture = (dims, graphics) => {
   return tex;
 }
 
-const drawPiece = (piece, dims, lineGraphics, dotGraphics) => {
+const drawPiece = (piece, dims, graphics) => {
   if (piece.isEmpty()) {
     return;
   }
   
-  dotGraphics.lineStyle(0);
+  graphics.lineStyle(0);
 
   // draw conections
   piece.points.forEach((element, index) => {
@@ -48,32 +48,39 @@ const drawPiece = (piece, dims, lineGraphics, dotGraphics) => {
     }
     // get screen positions
     const sco = utils.getScreenCoordinates(dims, element);
-
-    dotGraphics.lineStyle(2, piece.color);
-    lineGraphics.lineStyle(2, piece.color);
+    graphics.lineStyle(2, piece.color);
     
     // draw radial line to next point
     if (element.y < dims.L_HEIGHT && piece.contains(element.x, element.y+1)) {
-      lineGraphics.beginFill();
-      lineGraphics.moveTo(sco.x, sco.y);
+      graphics.beginFill();
+      graphics.moveTo(sco.x, sco.y);
       const end = utils.getScreenCoordinates(dims, {x: element.x, y: element.y+1});
-      lineGraphics.lineTo(end.x, end.y);
-      lineGraphics.endFill();
+      graphics.lineTo(end.x, end.y);
+      graphics.endFill();
     }
 
     // draw arc to next point
     const r = dims.SEC_RADII[element.y];
     const a = dims.SEC_ANGLES[utils.mod(element.x, dims.L_WIDTH)];
     if (piece.contains(element.x+1, element.y)) {
-      lineGraphics.arc(dims.CENTER_X, dims.CENTER_Y, r, a, a+dims.SEC_ANGLE, false);
+      graphics.arc(0, 0, r, a, a+dims.SEC_ANGLE, false);
     }
+  });
 
-    // draw point
-    dotGraphics.beginFill(element.color);
+  // draw points
+  piece.points.forEach((element, index) => {
+    if (element.y > dims.L_HEIGHT) {
+      return;
+    }
+    // get screen positions
+    const sco = utils.getScreenCoordinates(dims, element);
+    graphics.lineStyle(2, piece.color);
+    
+    graphics.beginFill(element.color);
     // dot radius should fill 1/3 of the inner section it takes...
     const size = element.y < dims.L_HEIGHT ? (dims.SEC_SIZES[element.y]/3)*2 : (dims.SEC_SIZES[element.y-1]/3)*2;
-    dotGraphics.drawCircle(sco.x, sco.y, size);
-    dotGraphics.endFill();
+    graphics.drawCircle(sco.x, sco.y, size);
+    graphics.endFill();
   });
 }
 
@@ -127,16 +134,16 @@ const spawnTetromino = (max, lco) => {
   return createPiece(points, max, lco.color, canRotate ? lco : null);
 }
 
-const spawnTrimino = (max, lco) => {
+const spawnSomino = (max, lco) => {
   let points;
   let canRotate = true;
 
   lco.color = config.ACCENT_COLORS[utils.rand(config.ACCENT_COLORS.length)];
 
-  switch (utils.rand(4)) {
+  switch (utils.rand(5)) {
     case 0: // I
-      points = [{x: lco.x, y: lco.y+1, color: lco.color},
-                {x: lco.x, y: lco.y+2, color: lco.color}];
+      points = [{x: lco.x+1, y: lco.y, color: lco.color},
+                {x: lco.x-1, y: lco.y, color: lco.color}];
       break;
     case 1: // J
       points = [{x: lco.x+1, y: lco.y, color: lco.color},
@@ -151,8 +158,9 @@ const spawnTrimino = (max, lco) => {
                 {x: lco.x, y: lco.y+1, color: lco.color},
                 {x: lco.x+1, y: lco.y+1, color: lco.color}];
       canRotate = false;
+      break;
     default: // :
-      points = [{x: lco.x, y: lco.y+1, color: lco.color}];
+      points = [{x: lco.x+1, y: lco.y, color: lco.color}];
       break;
   }
 
@@ -223,9 +231,7 @@ export default class extends Phaser.State {
       SEC_SIZES: sections,
       SEC_RADII: radii,
       SEC_ANGLES: angles,
-      SEC_ANGLE: sectionAngle,
-      CENTER_X: this.world.centerX,
-      CENTER_Y: this.world.centerY
+      SEC_ANGLE: sectionAngle
     };
     this.pieces = [];
     this.landPiece = createPiece([], this.dimensions.L_WIDTH, config.DARK_GREY_COLOR);
@@ -233,30 +239,29 @@ export default class extends Phaser.State {
     this.score = 0;
     this.gameOver = false;
     this.mode = mode;
+    this.scoreText = this.add.text(40, 40, 0, utils.getStyle(20));
 
     const background = this.game.add.sprite(this.world.centerX, this.world.centerY, generateBaseTexture(this.dimensions, this.game.add.graphics()));
     background.anchor.set(0.5);
-    this.lineGraphics = this.game.add.graphics();
-    this.dotGraphics = this.game.add.graphics();
-    this.lLineGraphics = this.game.add.graphics();
-    this.lDotGraphics = this.game.add.graphics();
+    this.lGraphics = this.game.add.graphics(this.world.centerX, this.world.centerY);
+    this.graphics = this.game.add.graphics(this.world.centerX, this.world.centerY);
+
+    this.clearBeforeRender = false;
 
     this.cooldown = -1;
     this.maxCooldown = config.START_COOLDOWN;
   }
 
   reDrawPieces () {
-    this.lineGraphics.clear();
-    this.dotGraphics.clear();
+    this.graphics.clear();
     this.pieces.forEach((piece) => {
-      drawPiece(piece, this.dimensions, this.lineGraphics, this.dotGraphics);
+      drawPiece(piece, this.dimensions, this.graphics);
     });
   }
 
   reDrawLand() {
-    this.lLineGraphics.clear();
-    this.lDotGraphics.clear();
-    drawPiece(this.landPiece, this.dimensions, this.lLineGraphics, this.lDotGraphics);
+    this.lGraphics.clear();
+    drawPiece(this.landPiece, this.dimensions, this.lGraphics);
   }
 
   checkClears () {
@@ -290,6 +295,7 @@ export default class extends Phaser.State {
     if (results.score > 0) {
       this.landPiece = results.piece;
       this.score += results.score;
+      this.scoreText.setText(this.score);
       const newDelay = this.tickEvent.delay * Math.pow(config.DIFFICULTY_RATE, results.score);
       this.tickEvent.delay = newDelay;
 
@@ -315,7 +321,7 @@ export default class extends Phaser.State {
 
       default:
         if (this.cooldown < 0)  {
-          this.pieces.push(spawnTrimino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
+          this.pieces.push(spawnSomino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
           this.cooldown = this.maxCooldown;
         } else {
           this.cooldown--;
@@ -406,24 +412,32 @@ export default class extends Phaser.State {
         this.pieces = newPieces;
       }
 
-      this.landPiece = newLand;
-      this.checkClears();
       this.reDrawLand();
+      // tween the shift
+      // generate new land bitmap, pre-shift
+      const tween = this.add.tween(this.lGraphics).to( { rotation: shift*this.dimensions.SEC_ANGLE }, 40, Phaser.Easing.Linear.None, true);
+      tween.onComplete.add(() => {
+        this.landPiece = newLand;
+        this.checkClears();
+        this.lGraphics.rotation = 0; // reset the animated rotation
+        this.reDrawLand();
+
+        if (this.isLoser()) {
+          this.endGame();
+        }
+      }, this);
+      
 
       if (landed) {
         this.reDrawPieces();
-      }
-
-      if (this.isLoser()) {
-        this.endGame();
-      }
+      }      
     }
 
-    const rotatePieces = () => {
+    const rotatePieces = (clockwise) => {
       const newPieces = [];
 
       this.pieces.forEach((piece) => {
-        const rp = rotatePiece(piece);
+        const rp = rotatePiece(piece, clockwise);
 
         if (!isLanded(rp, this.landPiece)) {
           newPieces.push(rp);
@@ -455,7 +469,12 @@ export default class extends Phaser.State {
       }
     } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.UP)) {
       if (this.released) {
-        rotatePieces();
+        rotatePieces(false);
+        this.released = false;
+      }
+    } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.ONE)) {
+      if (this.released) {
+        rotatePieces(true);
         this.released = false;
       }
     } else if (this.game.input.keyboard.isDown(Phaser.Keyboard.R)) {

@@ -12,10 +12,7 @@ Made with:
 - solarized: http://ethanschoonover.com/solarized
 
 ## Todo
-- live score update
-- tweened spinning animations
 - less memory usage (drawing)
-- touch controls
-
+- touch controls + mobile
 - sound
 - pretty animations

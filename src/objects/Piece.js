@@ -62,7 +62,7 @@ const shiftPiece = (piece, distance) => {
 }
 
 // assume we always go clockwise
-const rotatePiece = (piece) => {
+const rotatePiece = (piece, clockwise) => {
   if (!piece.root) {
     return piece;
   }
@@ -71,7 +71,11 @@ const rotatePiece = (piece) => {
   piece.getPoints().forEach((point) => {
     const dx = point.x - piece.root.x;
     const dy = point.y - piece.root.y;
-    points.push({x: piece.root.x + dy, y: piece.root.y - dx, color: point.color});
+    if (!clockwise) {
+      points.push({x: piece.root.x + dy, y: piece.root.y - dx, color: point.color});
+    } else {
+      points.push({x: piece.root.x - dy, y: piece.root.y + dx, color: point.color})
+    }
   });
 
   return createPiece(points, piece.MAX_X, piece.color, piece.root);
