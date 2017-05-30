@@ -1,4 +1,5 @@
 import config from './config'
+import { createPiece }  from './objects/Piece'
 
 const getStyle = (size) => {
   return { font: '' + size + 'pt Courier New', fill: config.MENU_ITEM_COLOR, backgroundColor: "#f9f6f2"};
@@ -41,4 +42,108 @@ const addMenuItem = (size, content, relativePosition, state, clickFunction) => {
     }
 }
 
-export default { getScreenCoordinates, rand, addMenuItem, mod, getStyle }
+const spawnTetromino = (max, y) => {
+  let points;
+  let canRotate = true;
+  const x = rand(max);
+
+  const color = config.ACCENT_COLORS[rand(config.ACCENT_COLORS.length)];
+
+  switch (rand(7)) {
+    case 0: // I
+      points = [{x: x+1, y: y, color: color},
+                {x: x+2, y: y, color: color},
+                {x: x-1, y: y, color: color}];
+      break;
+    case 1: // J
+      points = [{x: x+1, y: y, color: color},
+                {x: x-1, y: y, color: color},
+                {x: x-1, y: y+1, color: color}];
+      break;
+    case 2: // L
+      points = [{x: x+1, y: y, color: color},
+                {x: x-1, y: y, color: color},
+                {x: x+1, y: y+1, color: color}];
+      break;
+    case 3: // O
+      points = [{x: x+1, y: y, color: color},
+                {x: x, y: y+1, color: color},
+                {x: x+1, y: y+1, color: color}];
+      canRotate = false;
+      break;
+    case 4: // S 
+      points = [{x: x-1, y: y, color: color},
+                {x: x, y: y+1, color: color},
+                {x: x+1, y: y+1, color: color}];
+      break;
+    case 5: // T
+      points = [{x: x+1, y: y, color: color},
+                {x: x-1, y: y, color: color},
+                {x: x, y: y+1, color: color}];
+      break;
+    default: // Z
+      points = [{x: x+1, y: y, color: color},
+                {x: x, y: y+1, color: color},
+                {x: x-1, y: y+1, color: color}];
+      break;
+  }
+
+  const root = {x: x, y: y, color: color};
+  points.push(root);
+
+  return createPiece(points, max, color, canRotate ? root : null);
+}
+
+const spawnSomino = (max, y) => {
+  let points;
+  let canRotate = true;
+  const x = rand(max);
+
+  const color = config.ACCENT_COLORS[rand(config.ACCENT_COLORS.length)];
+
+  switch (rand(5)) {
+    case 0: // I
+      points = [{x: x+1, y: y, color: color},
+                {x: x-1, y: y, color: color}];
+      break;
+    case 1: // J
+      points = [{x: x+1, y: y, color: color},
+                {x: x, y: y+1, color: color}];
+      break;
+    case 2: // L
+      points = [{x: x-1, y: y, color: color},
+                {x: x, y: y+1, color: color}];
+      break;
+    case 3: // O
+      points = [{x: x+1, y: y, color: color},
+                {x: x, y: y+1, color: color},
+                {x: x+1, y: y+1, color: color}];
+      canRotate = false;
+      break;
+    default: // :
+      points = [{x: x+1, y: y, color: color}];
+      break;
+  }
+
+  const root = {x: x, y: y, color: color};
+  points.push(root);
+
+  return createPiece(points, max, color, canRotate ? root : null);
+}
+
+const isLanded = (piece, landPiece) => {
+  const points = piece.getPoints();
+  for(let i = 0; i < points.length; i++) {
+    if (points[i].y < 0) {
+      return true;
+    }
+
+    if (landPiece.contains(points[i].x, points[i].y)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export default { getScreenCoordinates, rand, addMenuItem, mod, getStyle, spawnSomino, spawnTetromino, isLanded }

@@ -2,187 +2,8 @@
 import Phaser from 'phaser'
 import { createPiece, dropPiece, mergePieces, shiftPiece, rotatePiece }  from '../objects/Piece'
 import utils from '../utils'
+import drawUtils from '../drawUtils'
 import config from '../config'
-
-const getRowColor = (y) => {
-  return y%2 === 0 ? config.GREY_COLOR : config.LIGHT_GREY_COLOR;
-}
-
-const generateBaseTexture = (dims, graphics) => {
-  // bars
-  graphics.lineStyle(1, config.LIGHT_GREY_COLOR);
-  for (let i = 0; i < dims.L_WIDTH; i++) {
-    graphics.beginFill();
-    graphics.moveTo(0, 0);
-    const end = utils.getScreenCoordinates(dims, {x: i, y: 0});
-    graphics.lineTo(end.x, end.y);
-    graphics.endFill();
-  }
-  // concentric circles, empty
-  graphics.moveTo(0, 0);
-  graphics.beginFill(0, 0);
-  for (let i = 0; i < dims.L_HEIGHT; i++) {
-    const radius = dims.SEC_RADII[i];
-    graphics.lineStyle(1, getRowColor(i));
-    
-    graphics.drawCircle(0, 0, radius*2);
-  }
-  graphics.endFill();
-
-  const tex = graphics.generateTexture()
-  graphics.destroy();
-  return tex;
-}
-
-const drawPiece = (piece, dims, graphics) => {
-  if (piece.isEmpty()) {
-    return;
-  }
-  
-  graphics.lineStyle(0);
-
-  // draw conections
-  piece.points.forEach((element, index) => {
-    if (element.y > dims.L_HEIGHT) {
-      return;
-    }
-    // get screen positions
-    const sco = utils.getScreenCoordinates(dims, element);
-    graphics.lineStyle(2, piece.color);
-    
-    // draw radial line to next point
-    if (element.y < dims.L_HEIGHT && piece.contains(element.x, element.y+1)) {
-      graphics.beginFill();
-      graphics.moveTo(sco.x, sco.y);
-      const end = utils.getScreenCoordinates(dims, {x: element.x, y: element.y+1});
-      graphics.lineTo(end.x, end.y);
-      graphics.endFill();
-    }
-
-    // draw arc to next point
-    const r = dims.SEC_RADII[element.y];
-    const a = dims.SEC_ANGLES[utils.mod(element.x, dims.L_WIDTH)];
-    if (piece.contains(element.x+1, element.y)) {
-      graphics.arc(0, 0, r, a, a+dims.SEC_ANGLE, false);
-    }
-  });
-
-  // draw points
-  piece.points.forEach((element, index) => {
-    if (element.y > dims.L_HEIGHT) {
-      return;
-    }
-    // get screen positions
-    const sco = utils.getScreenCoordinates(dims, element);
-    graphics.lineStyle(2, piece.color);
-    
-    graphics.beginFill(element.color);
-    // dot radius should fill 1/3 of the inner section it takes...
-    const size = element.y < dims.L_HEIGHT ? (dims.SEC_SIZES[element.y]/3)*2 : (dims.SEC_SIZES[element.y-1]/3)*2;
-    graphics.drawCircle(sco.x, sco.y, size);
-    graphics.endFill();
-  });
-}
-
-const spawnTetromino = (max, lco) => {
-  let points;
-  let canRotate = true;
-
-  lco.color = config.ACCENT_COLORS[utils.rand(config.ACCENT_COLORS.length)];
-
-  switch (utils.rand(7)) {
-    case 0: // I
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x+2, y: lco.y, color: lco.color},
-                {x: lco.x-1, y: lco.y, color: lco.color}];
-      break;
-    case 1: // J
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x-1, y: lco.y, color: lco.color},
-                {x: lco.x-1, y: lco.y+1, color: lco.color}];
-      break;
-    case 2: // L
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x-1, y: lco.y, color: lco.color},
-                {x: lco.x+1, y: lco.y+1, color: lco.color}];
-      break;
-    case 3: // O
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x, y: lco.y+1, color: lco.color},
-                {x: lco.x+1, y: lco.y+1, color: lco.color}];
-      canRotate = false;
-      break;
-    case 4: // S 
-      points = [{x: lco.x-1, y: lco.y, color: lco.color},
-                {x: lco.x, y: lco.y+1, color: lco.color},
-                {x: lco.x+1, y: lco.y+1, color: lco.color}];
-      break;
-    case 5: // T
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x-1, y: lco.y, color: lco.color},
-                {x: lco.x, y: lco.y+1, color: lco.color}];
-      break;
-    default: // Z
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x, y: lco.y+1, color: lco.color},
-                {x: lco.x-1, y: lco.y+1, color: lco.color}];
-      break;
-  }
-
-  points.push(lco);
-
-  return createPiece(points, max, lco.color, canRotate ? lco : null);
-}
-
-const spawnSomino = (max, lco) => {
-  let points;
-  let canRotate = true;
-
-  lco.color = config.ACCENT_COLORS[utils.rand(config.ACCENT_COLORS.length)];
-
-  switch (utils.rand(5)) {
-    case 0: // I
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x-1, y: lco.y, color: lco.color}];
-      break;
-    case 1: // J
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x, y: lco.y+1, color: lco.color}];
-      break;
-    case 2: // L
-      points = [{x: lco.x-1, y: lco.y, color: lco.color},
-                {x: lco.x, y: lco.y+1, color: lco.color}];
-      break;
-    case 3: // O
-      points = [{x: lco.x+1, y: lco.y, color: lco.color},
-                {x: lco.x, y: lco.y+1, color: lco.color},
-                {x: lco.x+1, y: lco.y+1, color: lco.color}];
-      canRotate = false;
-      break;
-    default: // :
-      points = [{x: lco.x+1, y: lco.y, color: lco.color}];
-      break;
-  }
-
-  points.push(lco);
-
-  return createPiece(points, max, lco.color, canRotate ? lco : null);
-}
-
-const isLanded = (piece, landPiece) => {
-  const points = piece.getPoints();
-  for(let i = 0; i < points.length; i++) {
-    if (points[i].y < 0) {
-      return true;
-    }
-
-    if (landPiece.contains(points[i].x, points[i].y)) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 export default class extends Phaser.State {
   init (mode) {
@@ -241,7 +62,7 @@ export default class extends Phaser.State {
     this.mode = mode;
     this.scoreText = this.add.text(40, 40, 0, utils.getStyle(20));
 
-    const background = this.game.add.sprite(this.world.centerX, this.world.centerY, generateBaseTexture(this.dimensions, this.game.add.graphics()));
+    const background = this.game.add.sprite(this.world.centerX, this.world.centerY, drawUtils.generateBaseTexture(this.dimensions, this.game.add.graphics()));
     background.anchor.set(0.5);
     this.lGraphics = this.game.add.graphics(this.world.centerX, this.world.centerY);
     this.graphics = this.game.add.graphics(this.world.centerX, this.world.centerY);
@@ -255,13 +76,13 @@ export default class extends Phaser.State {
   reDrawPieces () {
     this.graphics.clear();
     this.pieces.forEach((piece) => {
-      drawPiece(piece, this.dimensions, this.graphics);
+      drawUtils.drawPiece(piece, this.dimensions, this.graphics);
     });
   }
 
   reDrawLand() {
     this.lGraphics.clear();
-    drawPiece(this.landPiece, this.dimensions, this.lGraphics);
+    drawUtils.drawPiece(this.landPiece, this.dimensions, this.lGraphics);
   }
 
   checkClears () {
@@ -315,13 +136,13 @@ export default class extends Phaser.State {
     switch (this.mode) {
       case 1:
         if (this.pieces.length === 0)  {
-          this.pieces.push(spawnTetromino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
+          this.pieces.push(utils.spawnTetromino(this.dimensions.L_WIDTH, this.dimensions.L_HEIGHT+1));
         }
       break;
 
       default:
         if (this.cooldown < 0)  {
-          this.pieces.push(spawnSomino(this.dimensions.L_WIDTH, {x: utils.rand(this.dimensions.L_WIDTH), y: this.dimensions.L_HEIGHT+1}));
+          this.pieces.push(utils.spawnSomino(this.dimensions.L_WIDTH, this.dimensions.L_HEIGHT+1));
           this.cooldown = this.maxCooldown;
         } else {
           this.cooldown--;
@@ -332,13 +153,15 @@ export default class extends Phaser.State {
     let landed = false;
 
     const newPieces = [];
-    this.pieces.forEach((piece, index, array) => {
+    this.pieces.forEach((piece) => {
       // get the dropped piece
       let dp = dropPiece(piece);
 
-      if (isLanded(dp, this.landPiece)) {
+      if (utils.isLanded(dp, this.landPiece)) {
+        console.log("start drop merge");
         this.landPiece = mergePieces(this.landPiece, piece);
         landed = true;
+        console.log("finish drop merge");
       } else {
         // replace the old dropped piece if new one is valid
         newPieces.push(dp);
@@ -346,10 +169,9 @@ export default class extends Phaser.State {
     });
     // update to new piece state
     this.pieces = newPieces;
-
-    const cleared = this.checkClears();
     this.reDrawPieces();
 
+    const cleared = this.checkClears();
     if (cleared || landed) {
       this.reDrawLand();
     }
@@ -390,47 +212,52 @@ export default class extends Phaser.State {
       // check for any collisions with new land
       let foundCollision = true;
       let landed = false;
-      let newLand;
+      let shiftedLand;
 
       // if any collisions, repeat collision detection with new land
       while (foundCollision) {
         const newPieces = [];
-        newLand = shiftPiece(this.landPiece, shift);
+        shiftedLand = shiftPiece(this.landPiece, shift);
         foundCollision = false;
         
         this.pieces.forEach((piece) => {
           // either merge or keep the piece as is
-          if (isLanded(piece, newLand)) {
+          if (utils.isLanded(piece, shiftedLand)) {
+            console.log("start shift merge");
             foundCollision = true;
             this.landPiece = mergePieces(this.landPiece, piece);
             landed = true;
+            console.log("end shift merge");
           } else {
             newPieces.push(piece);
           }
         });
 
-        this.pieces = newPieces;
+        if(foundCollision) {
+          this.pieces = newPieces;
+        }
       }
 
+      // redraw the merged land to tween
       this.reDrawLand();
-      // tween the shift
-      // generate new land bitmap, pre-shift
-      const tween = this.add.tween(this.lGraphics).to( { rotation: shift*this.dimensions.SEC_ANGLE }, 40, Phaser.Easing.Linear.None, true);
-      tween.onComplete.add(() => {
-        this.landPiece = newLand;
-        this.checkClears();
-        this.lGraphics.rotation = 0; // reset the animated rotation
-        this.reDrawLand();
-
-        if (this.isLoser()) {
-          this.endGame();
-        }
-      }, this);
-      
-
       if (landed) {
         this.reDrawPieces();
-      }      
+      }
+
+      // update state immediately, visual update waits for tween
+      this.landPiece = shiftedLand;
+      this.checkClears();
+
+      if (this.isLoser()) {
+        this.endGame();
+      }
+
+      // tween the shift
+      const tween = this.add.tween(this.lGraphics).to( { rotation: shift*this.dimensions.SEC_ANGLE }, 40, Phaser.Easing.Linear.None, true);
+      tween.onComplete.add(() => {
+        this.lGraphics.rotation = 0; // reset the animated rotation
+        this.reDrawLand();
+      }, this);
     }
 
     const rotatePieces = (clockwise) => {
@@ -439,7 +266,7 @@ export default class extends Phaser.State {
       this.pieces.forEach((piece) => {
         const rp = rotatePiece(piece, clockwise);
 
-        if (!isLanded(rp, this.landPiece)) {
+        if (!utils.isLanded(rp, this.landPiece)) {
           newPieces.push(rp);
         } else {
           newPieces.push(piece);
